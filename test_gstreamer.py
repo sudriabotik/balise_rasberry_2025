@@ -1,42 +1,34 @@
-from ultralytics import YOLO
 import cv2
+import sys
 
-# Charger le modèle YOLO en mode détection
-model = YOLO('/home/ubuntu/Documents/yolo/test/best_canette_ncnn_model', task='detect')
 
-# Définir le pipeline GStreamer pour la Raspberry Pi Camera V2
-pipeline = (
-    "v4l2src device=/dev/video0 ! "
-    "video/x-raw, width=640, height=480, framerate=30/1 ! "
-    "videoconvert ! appsink"
-)
 
-# Ouvrir la caméra via le pipeline GStreamer
-cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+# Ouvrir la caméra avec l'index approprié et en forçant le backend FFMPEG
+cap = cv2.VideoCapture(1, cv2.CAP_FFMPEG)
+
+
 if not cap.isOpened():
-    print("Erreur : Impossible d'ouvrir la caméra via GStreamer")
-    exit()
+    print("Erreur : Impossible d'ouvrir la caméra")
+    sys.exit()
 
-# Créer une fenêtre redimensionnable pour l'affichage
-cv2.namedWindow("Détection en temps réel", cv2.WINDOW_NORMAL)
+# Configurer la résolution et le framerate
+# Note : Ces réglages dépendent du support de la caméra et peuvent ne pas être appliqués si la caméra ne les supporte pas.
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
+cap.set(cv2.CAP_PROP_FPS, 5)
+
+cv2.namedWindow("Test Camera (FFMPEG)", cv2.WINDOW_NORMAL)
 
 while True:
     ret, frame = cap.read()
     if not ret:
-        print("Erreur lors de la capture de l'image")
+        print("Erreur lors de la capture d'image")
         break
 
-    # Effectuer la détection sur le frame capturé
-    results = model(frame)
-    annotated_frame = results[0].plot()
+    cv2.imshow("Test Camera (FFMPEG)", frame)
 
-    # Afficher l'image annotée
-    cv2.imshow("Détection en temps réel", annotated_frame)
-
-    # Quitter en appuyant sur 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Libérer la caméra et fermer la fenêtre
 cap.release()
 cv2.destroyAllWindows()
