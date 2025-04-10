@@ -9,16 +9,27 @@ import time
 # Charger le modèle YOLO en mode détection
 model = YOLO('/home/ubuntu/Documents/yolo/detection_yolo/best_canette_ncnn_model', task='detect')
 
-# Initialiser les caméras avec les indices appropriés
-cap0 = cv2.VideoCapture(3)
-cap1 = cv2.VideoCapture(1)
-cap2 = cv2.VideoCapture(0)
+device1 = "/dev/camera_droite"
+device2 = "/dev/camera_gauche"
+device3 = "/dev/camera_milieu_rex"
+cap0 = cv2.VideoCapture(device1)
+cap1 = cv2.VideoCapture(device2)
+cap2 = cv2.VideoCapture(device3)
+
+cap0.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
+cap0.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cap0.set(cv2.CAP_PROP_FPS, 10)
+cap1.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
+cap1.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cap1.set(cv2.CAP_PROP_FPS, 10)
+cap2.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap2.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+cap2.set(cv2.CAP_PROP_FPS, 30)
 
 # Limiter le buffer pour chaque caméra
 cap0.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 cap1.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 cap2.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-
 # Vérifier l'ouverture de chaque caméra
 if not cap0.isOpened():
     print("Erreur : Impossible d'ouvrir la caméra 0")
@@ -65,6 +76,8 @@ while True:
     cv2.imshow("Detection Camera 0", annotated_frame0)
     cv2.imshow("Detection Camera 1", annotated_frame1)
     cv2.imshow("Detection Camera 2", annotated_frame2)
+
+    print("__________________________________")
 
     # Quitter la boucle en appuyant sur 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):

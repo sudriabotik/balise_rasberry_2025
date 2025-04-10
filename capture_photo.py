@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import cv2
 import sys
+import time
 
 device = "/dev/camera_droite"
 cap = cv2.VideoCapture(0)
@@ -13,7 +16,7 @@ fourcc_int = int(cap.get(cv2.CAP_PROP_FOURCC))
 fourcc_str = "".join([chr((fourcc_int >> 8 * i) & 0xFF) for i in range(4)])
 print(f"🎥 Format vidéo utilisé par {device} : {fourcc_str}")
 
-# Créer une fenêtre redimensionnable pour l'affichage
+# Créer une fenêtre redimensionnable
 cv2.namedWindow("Test Camera", cv2.WINDOW_NORMAL)
 
 while True:
@@ -24,8 +27,18 @@ while True:
 
     cv2.imshow("Test Camera", frame)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    key = cv2.waitKey(1) & 0xFF
+
+    # Quitter avec 'q'
+    if key == ord('q'):
         break
+
+    # Sauvegarder avec 's'
+    elif key == ord('s'):
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        filename = f"photo_{timestamp}.jpg"
+        cv2.imwrite(filename, frame)
+        print(f"📸 Image sauvegardée : {filename}")
 
 cap.release()
 cv2.destroyAllWindows()

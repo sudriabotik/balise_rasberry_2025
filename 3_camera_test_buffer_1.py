@@ -4,10 +4,12 @@
 import cv2
 import sys
 
-# Initialisation des caméras avec les indices appropriés
-cap0 = cv2.VideoCapture(4)
-cap1 = cv2.VideoCapture(2)
-cap2 = cv2.VideoCapture(0)
+device1 = "/dev/camera_droite"
+device2 = "/dev/camera_gauche"
+device3 = "/dev/camera_milieu"
+cap0 = cv2.VideoCapture(device1)
+cap1 = cv2.VideoCapture(device2)
+cap2 = cv2.VideoCapture(device3)
 
 # Limiter la taille du buffer pour chaque caméra
 cap0.set(cv2.CAP_PROP_BUFFERSIZE, 1)
