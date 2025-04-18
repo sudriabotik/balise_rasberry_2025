@@ -27,3 +27,9 @@ nom des camera :
 "/dev/camera_droite"
 "/dev/camera_gauche"
 "/dev/camera_milieu_rex"
+"/dev/camera_haut" 
+
+voir log d'erreur du crash précedent: 
+sudo journalctl -b -1
+sudo journalctl -b -1 -p err
+

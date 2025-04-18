@@ -3,7 +3,7 @@
 import cv2
 import os
 
-device = "/dev/camera_droite"
+device = "/dev/camera_haut"
 print("os path",os.path.exists(device)) 
 
 
