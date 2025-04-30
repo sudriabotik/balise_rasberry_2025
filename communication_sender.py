@@ -8,7 +8,7 @@ import time
 
 
 
-RASPBERRY_IP = '192.168.0.104'  
+RASPBERRY_IP = '192.168.0.103'  
 
 PORT = 65432
 

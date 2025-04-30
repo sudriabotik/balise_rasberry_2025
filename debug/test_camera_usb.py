@@ -1,8 +1,8 @@
 import cv2
 import sys
 
-device = "/dev/camera_haut"
-cap = cv2.VideoCapture(4)
+device = "/dev/camera_droite"
+cap = cv2.VideoCapture(device)
 
 if not cap.isOpened():
     print(f"Erreur : Impossible d'ouvrir la caméra {device}")

@@ -33,3 +33,14 @@ voir log d'erreur du crash précedent:
 sudo journalctl -b -1
 sudo journalctl -b -1 -p err
 
+sudo rpi-eeprom-config --edit
+PSU_MAX_CURRENT = 3000
+
+test de stress cpu : stress-ng --cpu 4 --timeout 120s --metrics-brief
+# Dans les logs noyau, recherche d’éventuels messages de throttling
+dmesg | grep -i -e throttle -e undervoltage -e voltage -e temp
+
+
+pour ouvrir une image : 
+xdg-open IMG_7238.jpg
+
