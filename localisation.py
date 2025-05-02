@@ -1,37 +1,84 @@
 import cv2
 
-def localisations_tas(objects_detected, frames):
-    # Define the two predefined rectangles (x_min, y_min, x_max, y_max)
-    rectangle1 = (50, 50, 200, 200)  
-    rectangle2 = (300, 50, 450, 200) 
+#frame droite 
+rectangle4 = (130, 250, 370, 420)  # vert
+rectangle8 = (560, 130, 750, 255) 
 
-    pile1_count = 0
-    pile2_count = 0
+tas_4 = 0
+tas_8 = 0
 
-    for obj in objects_detected:
-        coordinates = obj.get('coordinates', [])
-        if len(coordinates) < 4:
-            print("Invalid detection coordinates, skipping.")
+#frame gauche
+rectangle5 = (130, 250, 370, 420)  # vert
+rectangle1 = (560, 130, 750, 255) 
+
+tas_5 = 0
+tas_1 = 0
+
+#frame haut
+rectangle2 = (130, 250, 370, 420)  # vert
+rectangle3 = (560, 130, 750, 255)
+rectangle6 = (130, 250, 370, 420)  # vert
+rectangle7 = (560, 130, 750, 255)
+
+tas_2 = 0
+tas_3 = 0
+tas_6 = 0
+tas_7 = 0
+
+
+def localisations_tas(objects_detected_by_frame, frames):
+    # Define rectangles for each frame
+    rectangles_by_frame = [
+        [(rectangle4, 'tas_4'), (rectangle8, 'tas_8')],  # Frame 0 (droite)
+        [(rectangle5, 'tas_5'), (rectangle1, 'tas_1')],  # Frame 1 (gauche)
+        [(rectangle2, 'tas_2'), (rectangle3, 'tas_3'), (rectangle6, 'tas_6'), (rectangle7, 'tas_7')]  # Frame 2 (haut)
+    ]
+
+    tas_counts = {
+        'tas_4': 0, 'tas_8': 0, 'tas_5': 0, 'tas_1': 0,
+        'tas_2': 0, 'tas_3': 0, 'tas_6': 0, 'tas_7': 0
+    }
+
+    for frame_index, objects_detected in enumerate(objects_detected_by_frame):
+        if frame_index >= len(rectangles_by_frame):
+            print(f"No rectangles defined for frame {frame_index}, skipping.")
             continue
 
-        center_x = (coordinates[0] + coordinates[2]) / 2  # Calculate center x
-        center_y = (coordinates[1] + coordinates[3]) / 2  # Calculate center y
+        for obj in objects_detected:
+            coordinates = obj.get('coordinates', [])
+            if len(coordinates) < 4:
+                print("Invalid detection coordinates, skipping.")
+                continue
 
-        if is_inside_rectangle((center_x, center_y), rectangle1):
-            pile1_count += 1
-        elif is_inside_rectangle((center_x, center_y), rectangle2):
-            pile2_count += 1
+            center_x = (coordinates[0] + coordinates[2]) / 2  # Calculate center x
+            center_y = (coordinates[1] + coordinates[3]) / 2  # Calculate center y
 
-    for frame in frames:
-        # Draw rectangles on each frame
-        cv2.rectangle(frame, (rectangle1[0], rectangle1[1]), (rectangle1[2], rectangle1[3]), (0, 255, 0), 2)  # Green rectangle
-        cv2.rectangle(frame, (rectangle2[0], rectangle2[1]), (rectangle2[2], rectangle2[3]), (255, 0, 0), 2)  # Blue rectangle
+            for rectangle, tas_name in rectangles_by_frame[frame_index]:
+                if is_inside_rectangle((center_x, center_y), rectangle):
+                    tas_counts[tas_name] += 1
+
+        # Draw rectangles on the corresponding frame
+        for rectangle, _ in rectangles_by_frame[frame_index]:
+            cv2.rectangle(
+                frames[frame_index],
+                (rectangle[0], rectangle[1]),
+                (rectangle[2], rectangle[3]),
+                (0, 255, 0), 2  # Green rectangle
+            )
 
     # Validate piles based on the number of objects inside each rectangle
-    pile1_validated = pile1_count >= 3
-    pile2_validated = pile2_count >= 3
+    pile_validations = {
+        'tas_4': tas_counts['tas_4'] >= 3,
+        'tas_8': tas_counts['tas_8'] >= 3,
+        'tas_5': tas_counts['tas_5'] >= 3,
+        'tas_1': tas_counts['tas_1'] >= 3,
+        'tas_2': tas_counts['tas_2'] >= 3,
+        'tas_3': tas_counts['tas_3'] >= 3,
+        'tas_6': tas_counts['tas_6'] >= 3,
+        'tas_7': tas_counts['tas_7'] >= 3
+    }
 
-    return [pile1_validated, pile2_validated]
+    return pile_validations
 
 def is_inside_rectangle(coord, rectangle):
     x_min, y_min, x_max, y_max = rectangle
