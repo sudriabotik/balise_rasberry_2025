@@ -21,6 +21,9 @@ while True :
         else :
             break
     
-    if Server.IsConnected(handle) : Server.SendMessage(handle, f"this is message number {count}")
+    if Server.IsConnected(handle) :
+        result = Server.SendMessage(handle, f"this is message number {count}")
+        print(f'sending a message, {result}')
+    print(Server.IsConnected(handle))
     count += 1
     time.sleep(0.5)

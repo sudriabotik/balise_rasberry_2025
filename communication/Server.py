@@ -36,6 +36,10 @@ class Server :
 
         self.logFile = open(f"server_{name}.log", "a")
 
+        self.Log("\n\n")
+        self.Log("-- NEW RUN --")
+        self.Log("\n")
+
     def Log(self, text : str) :
         self.logFile.write(f"[ {datetime.now().time()} ] {text}\n")
         self.logFile.flush() # sometimes the file may not be closed properly (BAU or program killed) ,
@@ -54,10 +58,12 @@ class Server :
             try :
                 while True :
                     command = self.GetNextCommand()
+                    print(f"got command {command}")
                     if command == None : break
                     self.ExecuteCommand(command)
             except Exception as e :
                 self.Log(f"error executing command : {str(e)}")
+            
 
             if self.state == Server.STATE_DISCONNECTED :
 
@@ -66,6 +72,7 @@ class Server :
             elif self.state == Server.STATE_CONNECTED :
 
                 self.GetMessages()
+            
         
 
             time.sleep(max(0, loopStartTime - time.time() + self.tickrate))
@@ -86,7 +93,7 @@ class Server :
             self.Log(f"couldn't retrieve from input queue : {str(e)}")
             raise e
     
-    def ExecuteCommand(self, command) :
+    def ExecuteCommand(self, command : str) :
 
         split = command.split(COMMAND_SEPARATOR)
 
@@ -112,6 +119,7 @@ class Server :
             self.Log(f"successfully connected to {str(self.address)}")
         except socket.error as error : # if the connexion time out the socket raises an error
             if error.errno != None : self.Log(f"couldn't connect : {os.strerror(error.errno)}")
+            else : self.Log(f"couldn't connect : {error}")
         except Exception as e :
             self.Log(f"couldn't connect : {str(e)}")
 
@@ -120,13 +128,14 @@ class Server :
 
         try :
             if self.connexion == None : raise RuntimeError("cannot send message, connexion is None")
-            self.sock.settimeout(0.5)
+            self.connexion.settimeout(0.5)
             self.connexion.sendall(message.encode())
             self.Log(f"sent message : {message}")
         except socket.error as error :
             if error.errno != None :
                 self.Log(f"failed to send message : {os.strerror(error.errno)}")
                 self.HandleSocketError(error.errno)
+            else : self.Log(f"failed to send message : {error}")
         except Exception as e :
             self.Log(f"failed to send message : {str(e)}")
     
@@ -134,35 +143,38 @@ class Server :
     """ read received messages and put them in the queue """
     def GetMessages(self) :
 
-        while True :
-            try :
-                self.sock.settimeout(0.4)
-                message = self.connexion.recv(1024)
-            except socket.error as error :
-                if error.errno != None :
-                    self.Log(f"failed to receive messages : {os.strerror(error.errno)}")
-                    self.HandleSocketError(error.errno)
-            except Exception as e :
-                self.Log(f"failed to receive messages : {str(e)}")
-            
-            if message == None : return
-            else :
-                try :
-                    # if there is a complete message in the buffer, put it in the queue
-                    self.messageBuffer += message.decode()
-                    split = self.messageBuffer.split(MESSAGE_SEPARATOR)
-                    self.messageBuffer = split[-1] # keep the end of the buffer
+        try :
+            self.connexion.settimeout(0.4)
+            message = self.connexion.recv(1024)
+            if message == None : return # early return
+        except socket.error as error :
+            if error.errno != None :
+                self.Log(f"failed to receive messages : {os.strerror(error.errno)}")
+                self.HandleSocketError(error.errno)
+            else : self.Log(f"failed to receive messages : {error}")
+            return
+        except Exception as e :
+            self.Log(f"failed to receive messages : {str(e)}")
+            return
+        
+        
+        try :
+            # if there is a complete message in the buffer, put it in the queue
+            self.messageBuffer += message.decode()
+            split = self.messageBuffer.split(MESSAGE_SEPARATOR)
+            self.messageBuffer = split[-1] # keep the end of the buffer
 
-                    # any found message put in the queue
+            # any found message put in the queue
 
-                    if len(split) > 1 :
-                        for i in range(0, len(split) - 1) :
-                            self.outQueue.put_nowait(split[i])
+            if len(split) > 1 :
+                for i in range(0, len(split) - 1) :
+                    self.outQueue.put_nowait(split[i])
 
-                except queue.Full :
-                    self.Log("output queue is full")
-                except Exception as e :
-                    self.Log(f"failed to put in the queue : {str(e)}")
+        except queue.Full :
+            self.Log("output queue is full")
+        except Exception as e :
+            self.Log(f"failed to put in the queue : {str(e)}")
+
     
     def HandleSocketError(self, errno : int) :
 
@@ -232,5 +244,5 @@ def IsConnected(handle : ServerHandle) :
     try :
         return handle.serverInstance.state == Server.STATE_CONNECTED
     except Exception as e :
-        print(f"cannot know if serve is connected : {e}")
+        print(f"cannot know if server is connected : {e}")
         return False
