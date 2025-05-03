@@ -2,13 +2,10 @@ from setup_camera import setup_cameras
 from detection_yolo import process_frames
 from localisation import localisations_tas
 import cv2
-from communication import setup_connexion, send_data
+from communication import send_data
 
 # Initialiser les caméras
 cap_droite, cap_gauche, cap_haut = setup_cameras()
-
-# Establish connection to the server
-socket_conn = setup_connexion()
 
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
 cv2.namedWindow("Camera droite", cv2.WINDOW_NORMAL)
@@ -47,7 +44,7 @@ while True:
     print("__________________________________")
 
     # Send tas_detected to the server
-    send_data(socket_conn, tas_detected)
+    send_data(tas_detected)
 
     # Quitter la boucle en appuyant sur 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -58,6 +55,3 @@ cap_droite.release()
 cap_gauche.release()
 cap_haut.release()
 cv2.destroyAllWindows()
-
-# Close the socket connection
-socket_conn.close()
