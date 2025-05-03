@@ -1,24 +1,26 @@
 import Server
-import time
 
+import time
 
 PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
 
+# initialize
 
-server = Server.Server(PORT, "server_log.txt")
+handle = Server.CreateNewServer("balise", PORT)
 
-list = ["1" for i in range(8)]
-
+count = 0
 while True :
-    result = None
-    try :
-        result = server.SendList(list)
-        if result == True : print("successfully sent the stuff")
-        else : time.sleep(1)
-    except Exception as e :
-        print(str(e))
-        time.sleep(1)
+
+    while True :
+        message = Server.GetNextMessage(handle)
+
+        if message != None :
+
+            print(f"got message : {message}")
+        
+        else :
+            break
     
-    print(f"waiting {result}")
-
-
+    if Server.IsConnected(handle) : Server.SendMessage(handle, f"this is message number {count}")
+    count += 1
+    time.sleep(0.5)

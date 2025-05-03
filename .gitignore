@@ -1,2 +1,5 @@
 recording/
 
+*.log
+
+__pycache__
