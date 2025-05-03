@@ -8,7 +8,7 @@ from communication import setup_connexion, send_data
 cap_droite, cap_gauche, cap_haut = setup_cameras()
 
 # Establish connection to the server
-socket_conn = setup_connexion()
+#socket_conn = setup_connexion()
 
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
 cv2.namedWindow("Camera droite", cv2.WINDOW_NORMAL)
@@ -47,7 +47,7 @@ while True:
     print("__________________________________")
 
     # Send tas_detected to the server
-    send_data(socket_conn, tas_detected)
+    #send_data(socket_conn, tas_detected)
 
     # Quitter la boucle en appuyant sur 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
