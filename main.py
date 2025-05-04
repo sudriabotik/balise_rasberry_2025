@@ -43,7 +43,7 @@ while True:
     objects_detected = process_frames(frames)  # Process frames and annotate them directly
 
     # Pass the nested list structure directly to localisations_tas
-    tas_detected = localisations_tas(objects_detected, frames)  # Process frames without flattening
+    tas_detected = localisations_tas(objects_detected, frames, couleur_equipe_value)  # Process frames without flattening
 
     # Display the updated frames at the end of the loop
     for i, frame in enumerate(frames):

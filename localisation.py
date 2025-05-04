@@ -1,37 +1,37 @@
 import cv2
 
-#frame droite 
-rectangle4 = (130, 250, 370, 420)  # vert
-rectangle8 = (560, 130, 750, 255) 
+def get_rectangles_and_tas(equipe):
+    if equipe == "bleu":
+        return {
+            "rectangle4": (560, 130, 750, 255),
+            "rectangle8": (130, 250, 370, 420),
+            "rectangle5": (560, 130, 750, 255),
+            "rectangle1": (130, 250, 370, 420),
+            "rectangle2": (560, 130, 750, 255),
+            "rectangle3": (130, 250, 370, 420),
+            "rectangle6": (560, 130, 750, 255),
+            "rectangle7": (130, 250, 370, 420),
+        }
+    else:  # Par défaut, équipe bleue
+        return {
+            "rectangle4": (130, 250, 370, 420),
+            "rectangle8": (560, 130, 750, 255),
+            "rectangle5": (130, 250, 370, 420),
+            "rectangle1": (560, 130, 750, 255),
+            "rectangle2": (130, 250, 370, 420),
+            "rectangle3": (560, 130, 750, 255),
+            "rectangle6": (130, 250, 370, 420),
+            "rectangle7": (560, 130, 750, 255),
+        }
 
-tas_4 = 0
-tas_8 = 0
 
-#frame gauche
-rectangle5 = (130, 250, 370, 420)  # vert
-rectangle1 = (560, 130, 750, 255) 
+def localisations_tas(objects_detected_by_frame, frames, equipe):
+    rectangles = get_rectangles_and_tas(equipe)
 
-tas_5 = 0
-tas_1 = 0
-
-#frame haut
-rectangle2 = (130, 250, 370, 420)  # vert
-rectangle3 = (560, 130, 750, 255)
-rectangle6 = (130, 250, 370, 420)  # vert
-rectangle7 = (560, 130, 750, 255)
-
-tas_2 = 0
-tas_3 = 0
-tas_6 = 0
-tas_7 = 0
-
-
-def localisations_tas(objects_detected_by_frame, frames,equipe="bleu"):
-    # Define rectangles for each frame
     rectangles_by_frame = [
-        [(rectangle4, 'tas_4'), (rectangle8, 'tas_8')],  # Frame 0 (droite)
-        [(rectangle5, 'tas_5'), (rectangle1, 'tas_1')],  # Frame 1 (gauche)
-        [(rectangle2, 'tas_2'), (rectangle3, 'tas_3'), (rectangle6, 'tas_6'), (rectangle7, 'tas_7')]  # Frame 2 (haut)
+        [(rectangles['rectangle4'], 'tas_4'), (rectangles['rectangle8'], 'tas_8')],  # Frame 0 (droite)
+        [(rectangles['rectangle5'], 'tas_5'), (rectangles['rectangle1'], 'tas_1')],  # Frame 1 (gauche)
+        [(rectangles['rectangle2'], 'tas_2'), (rectangles['rectangle3'], 'tas_3'), (rectangles['rectangle6'], 'tas_6'), (rectangles['rectangle7'], 'tas_7')]  # Frame 2 (haut)
     ]
 
     tas_counts = {
@@ -87,11 +87,18 @@ def is_inside_rectangle(coord, rectangle):
     x, y = coord
     return x_min <= x <= x_max and y_min <= y <= y_max
 
-def changement_equipe(tas, equipe="bleue"):
-    # Par défaut, on est équipe bleue. Si on est équipe jaune, on échange les valeurs des tas.
+def changement_equipe(tas, equipe):
+    print("equipe actuelle :", equipe)
     if equipe == "jaune":
-        tas['tas_8'], tas['tas_5'] = tas['tas_5'], tas['tas_8']
-        tas['tas_4'], tas['tas_1'] = tas['tas_1'], tas['tas_4']
-        tas['tas_2'], tas['tas_3'] = tas['tas_3'], tas['tas_2']
-        tas['tas_6'], tas['tas_7'] = tas['tas_7'], tas['tas_6']
+        print("Équipe actuelle :", tas)
+        tas_temp = tas.copy()
+        tas['tas_8'] = tas_temp['tas_5']
+        tas['tas_5'] = tas_temp['tas_8']
+        tas['tas_4'] = tas_temp['tas_1']
+        tas['tas_1'] = tas_temp['tas_4']
+        tas['tas_2'] = tas_temp['tas_3']
+        tas['tas_3'] = tas_temp['tas_2']
+        tas['tas_6'] = tas_temp['tas_7']
+        tas['tas_7'] = tas_temp['tas_6']
+        print("Équipe après changement de equipe :", tas)
     return tas

@@ -50,7 +50,7 @@ def setup_connexion(timeout_max=300):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((RASPBERRY_IP, PORT))
     print("✅ Connecté au serveur")
-    time.sleep(3)  # Attendre un peu pour s'assurer que le serveur est prêt
+    time.sleep(2)  # Attendre un peu pour s'assurer que le serveur est prêt
     s.send(b"HELLO\n")  # ← premier message
     msg_ack = s.recv(1024)
     if msg_ack == b"ACK\n":
@@ -86,7 +86,8 @@ def receive_couleur_equipe(socket_conn, timeout=600):
         data = socket_conn.recv(1024)
 
         couleur_equipe = is_json_decodable(data)
-        if couleur_equipe is not None:
+
+        if (couleur_equipe == "bleu") or (couleur_equipe == "jaune"):
             print("🎨 Équipe couleur reçue :", couleur_equipe)
             return couleur_equipe
         else:
@@ -110,7 +111,7 @@ def couleur_equipe(socket_conn):
     couleur = receive_couleur_equipe(socket_conn, timeout=600)  # 10 minutes
     if couleur:
         print(f"✅ Couleur de l'équipe confirmée : {couleur}")
-        return True, couleur
+        return couleur
     else:
         print("❌ Aucune couleur d'équipe reçue dans le délai imparti ou erreur réseau.")
         socket_conn.close()
