@@ -2,19 +2,25 @@ from setup_camera import setup_cameras
 from detection_yolo import process_frames
 from localisation import localisations_tas
 import cv2
-from communication import setup_connexion, send_data
+from communication_client import setup_connexion, send_data, couleur_equipe
 
 # Initialiser les caméras
 cap_droite, cap_gauche, cap_haut = setup_cameras()
 
 # Establish connection to the server
-#socket_conn = setup_connexion()
+socket_conn = setup_connexion()
 
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
 cv2.namedWindow("Camera droite", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Camera gauche", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Camera haut", cv2.WINDOW_NORMAL)
 
+# Boucle pour attendre la réception de la couleur de l'équipe
+couleur_equipe_value = None
+couleur_equipe_value = couleur_equipe(socket_conn)
+print(f"Couleur de l'équipe reçue : {couleur_equipe_value}")
+
+# Boucle principale pour traiter les images
 while True:
     # Capture d'une image depuis chaque caméra
     ret0, frame_droite = cap_droite.read()
@@ -47,7 +53,7 @@ while True:
     print("__________________________________")
 
     # Send tas_detected to the server
-    #send_data(socket_conn, tas_detected)
+    send_data(socket_conn, tas_detected)
 
     # Quitter la boucle en appuyant sur 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):

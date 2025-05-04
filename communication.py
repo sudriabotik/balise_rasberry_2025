@@ -22,3 +22,39 @@ def send_data(socket_conn, tas_detected):
     json_data = json.dumps(tas_detected)
     socket_conn.sendall(json_data.encode())
     print("Données envoyées :", tas_detected)
+
+def receive_couleur_equipe(socket_conn, timeout=3):
+    """
+    Receives the team color from the server with an optional timeout.
+    Returns the team color or None if a timeout occurs.
+    """
+    if timeout is not None:
+        socket_conn.settimeout(timeout)
+
+    try:
+        data = socket_conn.recv(1024)
+        couleur_equipe = json.loads(data.decode())
+        print("Équipe couleur reçue :", couleur_equipe)
+        return couleur_equipe
+    except socket.timeout:
+        print("⚠️ Timeout en attente de la couleur de l'équipe")
+        return None
+    finally:
+        if timeout is not None:
+            socket_conn.settimeout(None)  # Reset the timeout to default
+
+def couleur_equipe(socket_conn):
+    """
+    Waits for the team color to be received.
+    Loops until the team color is successfully received.
+    Returns the team color.
+    """
+    while True:
+        couleur = receive_couleur_equipe(socket_conn, timeout=2)  # Timeout of 2 seconds
+        if couleur:
+            print(f"Couleur de l'équipe confirmée : {couleur}")
+            return True, couleur
+        else:
+            print("En attente de la couleur de l'équipe...")
+
+

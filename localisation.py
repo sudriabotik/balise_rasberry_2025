@@ -26,7 +26,7 @@ tas_6 = 0
 tas_7 = 0
 
 
-def localisations_tas(objects_detected_by_frame, frames):
+def localisations_tas(objects_detected_by_frame, frames,equipe="bleu"):
     # Define rectangles for each frame
     rectangles_by_frame = [
         [(rectangle4, 'tas_4'), (rectangle8, 'tas_8')],  # Frame 0 (droite)
@@ -78,9 +78,20 @@ def localisations_tas(objects_detected_by_frame, frames):
         'tas_7': tas_counts['tas_7'] >= 3
     }
 
+    changement_equipe(pile_validations, equipe)  # Change team if needed
+
     return pile_validations
 
 def is_inside_rectangle(coord, rectangle):
     x_min, y_min, x_max, y_max = rectangle
     x, y = coord
     return x_min <= x <= x_max and y_min <= y <= y_max
+
+def changement_equipe(tas, equipe="bleue"):
+    # Par défaut, on est équipe bleue. Si on est équipe jaune, on échange les valeurs des tas.
+    if equipe == "jaune":
+        tas['tas_8'], tas['tas_5'] = tas['tas_5'], tas['tas_8']
+        tas['tas_4'], tas['tas_1'] = tas['tas_1'], tas['tas_4']
+        tas['tas_2'], tas['tas_3'] = tas['tas_3'], tas['tas_2']
+        tas['tas_6'], tas['tas_7'] = tas['tas_7'], tas['tas_6']
+    return tas
