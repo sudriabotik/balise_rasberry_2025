@@ -11,6 +11,8 @@ import subprocess
 RASPBERRY_IP = '192.168.0.103'  
 PORT = 65432
 
+_start_time = None  # initialisé une seule fois
+
 def ping_raspberry(ip):
     try:
         output = subprocess.check_output(["ping", "-c", "1", "-W", "1", ip], stderr=subprocess.DEVNULL)
@@ -59,7 +61,7 @@ def setup_connexion(timeout_max=300):
 
 def send_data(socket_conn, tas_detected):
     """Sends the tas_detected dictionary to the server."""
-    json_data = json.dumps(tas_detected)
+    json_data = json.dumps(tas_detected) + "\n"
     socket_conn.sendall(json_data.encode())
     print("Données envoyées :", tas_detected)
 
@@ -117,3 +119,24 @@ def couleur_equipe(socket_conn):
         socket_conn.close()
         sys.exit(1)
 
+def wait_start_match(socket_conn):
+    """
+    Démarre le timer à la réception de START_MATCH.
+    Retourne le temps écoulé depuis le début du match.
+    """
+    global _start_time
+
+    if _start_time is None:
+        print("⏳ Attente du signal de début de match...")
+        data = socket_conn.recv(1024)
+        if data == b"START_MATCH\n":
+            print("✅ Signal de début de match reçu")
+            _start_time = time.time()
+            return 0.0
+        else:
+            print("⚠️ Signal non reconnu, attente...")
+            time.sleep(1)
+            return None
+    else:
+        elapsed = time.time() - _start_time
+        return round(elapsed, 3)

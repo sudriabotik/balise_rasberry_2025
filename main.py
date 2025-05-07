@@ -2,7 +2,7 @@ from setup_camera import setup_cameras
 from detection_yolo import process_frames
 from localisation import localisations_tas
 import cv2
-from communication_client import setup_connexion, send_data, couleur_equipe
+from communication_client import setup_connexion, send_data, couleur_equipe, wait_start_match
 
 # Initialiser les caméras
 cap_droite, cap_gauche, cap_haut = setup_cameras()
@@ -19,6 +19,7 @@ cv2.namedWindow("Camera haut", cv2.WINDOW_NORMAL)
 couleur_equipe_value = None
 couleur_equipe_value = couleur_equipe(socket_conn)
 print(f"Couleur de l'équipe reçue : {couleur_equipe_value}")
+elapsed_time = 0
 
 # Boucle principale pour traiter les images
 while True:
@@ -43,7 +44,7 @@ while True:
     objects_detected = process_frames(frames)  # Process frames and annotate them directly
 
     # Pass the nested list structure directly to localisations_tas
-    tas_detected = localisations_tas(objects_detected, frames, couleur_equipe_value)  # Process frames without flattening
+    tas_detected = localisations_tas(objects_detected, frames, couleur_equipe_value, elapsed_time)  # Process frames without flattening
 
     # Display the updated frames at the end of the loop
     for i, frame in enumerate(frames):
@@ -53,6 +54,7 @@ while True:
     print("__________________________________")
 
     # Send tas_detected to the server
+    elapsed_time = wait_start_match(socket_conn)
     send_data(socket_conn, tas_detected)
 
     # Quitter la boucle en appuyant sur 'q'

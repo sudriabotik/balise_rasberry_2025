@@ -25,7 +25,7 @@ def get_rectangles_and_tas(equipe):
         }
 
 
-def localisations_tas(objects_detected_by_frame, frames, equipe):
+def localisations_tas(objects_detected_by_frame, frames, equipe, elapsed_time):
     rectangles = get_rectangles_and_tas(equipe)
 
     rectangles_by_frame = [
@@ -75,7 +75,8 @@ def localisations_tas(objects_detected_by_frame, frames, equipe):
         'tas_2': tas_counts['tas_2'] >= 3,
         'tas_3': tas_counts['tas_3'] >= 3,
         'tas_6': tas_counts['tas_6'] >= 3,
-        'tas_7': tas_counts['tas_7'] >= 3
+        'tas_7': tas_counts['tas_7'] >= 3,
+        'elapsed_time': elapsed_time
     }
 
     changement_equipe(pile_validations, equipe)  # Change team if needed
