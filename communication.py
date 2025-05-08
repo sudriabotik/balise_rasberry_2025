@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import socket
+import Server
 
 import json
 
@@ -9,18 +9,21 @@ import time
 RASPBERRY_IP = '192.168.0.103'  
 PORT = 65432
 
-def setup_connexion():
-    """Establishes a connection to the server and returns the socket."""
-    print("Connexion en cours...")
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((RASPBERRY_IP, PORT))
-    print("Connecté au serveur")
-    return s
+server_handle = None
+
+def setup_server():
+    
+    global server_handle
+
+    server_handle = Server.CreateNewServer("balise", PORT)
+
 
 def send_data(socket_conn, tas_detected):
-    """Sends the tas_detected dictionary to the server."""
+    """Sends the tas_detected dictionary."""
     json_data = json.dumps(tas_detected)
-    socket_conn.sendall(json_data.encode())
+    
+    Server.SendMessage(server_handle, json_data)
+
     print("Données envoyées :", tas_detected)
 
 def receive_couleur_equipe(socket_conn, timeout=3):
@@ -30,6 +33,14 @@ def receive_couleur_equipe(socket_conn, timeout=3):
     """
     if timeout is not None:
         socket_conn.settimeout(timeout)
+
+    """
+    since the server is in another thread, cannot directly access the connexion or the timout
+    the quickest solution is to make a timed loop that polls for the 
+    """
+    initial_time = time.time()
+
+
 
     try:
         data = socket_conn.recv(1024)
