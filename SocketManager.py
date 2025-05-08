@@ -92,11 +92,15 @@ class ConnexionHandle :
 
 
 def HandleConnexionErrors(connexionHandle : ConnexionHandle, errno : int) :
+
+    connexionHandle.WriteToLog(f"processing connexion error with errno : {errno}")
     
     if errno == 104 : # connexion reset by peer
         connexionHandle.valid = False
+        connexionHandle.WriteToLog("connexion invalidated")
     elif errno == 32 : # broken pipe ??
         connexionHandle.valid = False
+        connexionHandle.WriteToLog("connexion invalidated")
 
 def CreateSocket() :
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -164,7 +168,7 @@ def GetNextMessage(connexionHandle : ConnexionHandle, update = True, timeout = N
     return connexionHandle.messageBuffer.pop(0)
 
 """ return the newest available message """
-def GetNewestMessage(connexionHandle : ConnexionHandle, update = True, timeout = None) :
+def GetLatestMessage(connexionHandle : ConnexionHandle, update = True, timeout = None) :
     if update : ReadReceptionBuffer(connexionHandle, timeout)
     if len(connexionHandle.messageBuffer) == 0 : return None
     return connexionHandle.messageBuffer.pop(-1)
