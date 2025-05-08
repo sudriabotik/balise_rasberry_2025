@@ -158,16 +158,19 @@ def ReadReceptionBuffer(connexionHandle : ConnexionHandle, timeout = 0) :
     return len(messages)
 
 """ returns the oldest available message """
-def GetNextMessage(connexionHandle : ConnexionHandle, update = True) :
-    if update : ReadReceptionBuffer(connexionHandle)
+def GetNextMessage(connexionHandle : ConnexionHandle, update = True, timeout = None) :
+    if update : ReadReceptionBuffer(connexionHandle, timeout)
     if len(connexionHandle.messageBuffer) == 0 : return None
     return connexionHandle.messageBuffer.pop(0)
 
 """ return the newest available message """
-def GetNewestMessage(connexionHandle : ConnexionHandle, update = True) :
-    if update : ReadReceptionBuffer(connexionHandle)
+def GetNewestMessage(connexionHandle : ConnexionHandle, update = True, timeout = None) :
+    if update : ReadReceptionBuffer(connexionHandle, timeout)
     if len(connexionHandle.messageBuffer) == 0 : return None
     return connexionHandle.messageBuffer.pop(-1)
 
-
+def FlushStoredMessages(connexionHandle : ConnexionHandle) :
+    messages = connexionHandle.messageBuffer
+    connexionHandle.messageBuffer = []
+    return messages
 
