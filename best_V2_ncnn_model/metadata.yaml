@@ -1,0 +1,18 @@
+description: Ultralytics best_V2 model trained on entrainement_model/config.yaml
+author: Ultralytics
+date: '2025-05-09T16:55:28.573618'
+version: 8.3.88
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: canette
+  1: planche
+args:
+  batch: 1
+  half: false

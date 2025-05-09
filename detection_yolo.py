@@ -2,7 +2,7 @@ from ultralytics import YOLO
 import cv2
 from setup_camera import setup_cameras
 
-model = YOLO('/home/ubuntu/Documents/yolo/detection_yolo/best_canette_ncnn_model', task='detect')
+model = YOLO('/home/ubuntu/Documents/yolo/detection_yolo/best_V2_ncnn_model', task='detect')
 
 def process_frames(frames):
     """
