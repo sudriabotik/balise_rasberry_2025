@@ -80,7 +80,7 @@ def is_json_decodable(data):
     Retourne le JSON décodé si valide, sinon None.
     """
     try:
-        return json.loads(data.decode())
+        return json.loads(data)
     except (json.JSONDecodeError, UnicodeDecodeError):
         return None
 
@@ -131,7 +131,7 @@ def couleur_equipe(handle):
         handle.Close()
         sys.exit(1)
 
-def wait_start_match(socket_conn):
+def wait_start_match(handle):
     """
     Démarre le timer à la réception de START_MATCH.
     Retourne le temps écoulé depuis le début du match.
@@ -140,7 +140,7 @@ def wait_start_match(socket_conn):
 
     if _start_time is None:
         print("⏳ Attente du signal de début de match...")
-        data = socket_conn.recv(1024)
+        data = SocketManager.GetLatestMessage(handle)
         if data == b"START_MATCH\n":
             print("✅ Signal de début de match reçu")
             _start_time = time.time()
