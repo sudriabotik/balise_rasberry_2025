@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import socket
+#import socket
 import json
 import time
 import sys  
 import subprocess
 from ecrans_lcd import message_lcd
+import SocketManager
 
 #import keyboard  # Requires the 'keyboard' library to detect key presses
 
@@ -13,6 +14,10 @@ RASPBERRY_IP = '192.168.0.103'
 PORT = 65432
 
 _start_time = None  # initialisé une seule fois
+
+SocketManager.Init()
+sock = SocketManager.CreateSocket()
+
 
 def ping_raspberry(ip):
     try:
@@ -52,20 +57,23 @@ def setup_connexion(lcd, timeout_max=300):
         exit(1)  # Arrête le programme si le serveur n'est pas disponible
 
     print("Connexion en cours...")
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((RASPBERRY_IP, PORT))
+    handle = SocketManager.Connect(sock, RASPBERRY_IP, PORT, "balise", timeout=None)
+    if handle == None : return None
     print("✅ Connecté au serveur")
     time.sleep(2)  # Attendre un peu pour s'assurer que le serveur est prêt
-    s.send(b"HELLO\n")  # ← premier message
-    msg_ack = s.recv(1024)
-    if msg_ack == b"ACK\n":
-        print("✅ Message de bienvenue reçu du serveur")
-    return s
+    
+    return handle
 
-def send_data(socket_conn, tas_detected):
+def verify_connexion(handle) :
+    SocketManager.SendMessage(handle, "HELLO", timeout=None) # ← premier message
+    msg_ack = SocketManager.GetNewestMessage(handle, timeout=None)
+    if msg_ack == "ACK":
+        print("✅ Message de bienvenue reçu du serveur")
+
+def send_data(handle, tas_detected):
     """Sends the tas_detected dictionary to the server."""
-    json_data = json.dumps(tas_detected) + "\n"
-    socket_conn.sendall(json_data.encode())
+    json_data = json.dumps(tas_detected)
+    SocketManager.SendMessage(handle, json_data)
     print("Données envoyées :", tas_detected)
 
 def is_json_decodable(data):
@@ -74,21 +82,20 @@ def is_json_decodable(data):
     Retourne le JSON décodé si valide, sinon None.
     """
     try:
-        return json.loads(data.decode())
+        return json.loads(data)
     except (json.JSONDecodeError, UnicodeDecodeError):
         return None
 
-def receive_couleur_equipe(socket_conn, timeout=600):
+def receive_couleur_equipe(handle, timeout=600):
     """
     Reçoit la couleur d'équipe depuis le serveur.
     Retourne la couleur ou None si timeout ou données invalides.
     """
-    if timeout is not None:
-        socket_conn.settimeout(timeout)
+
 
     try:
         print("⏳5min Attente de la couleur de l'équipe...")
-        data = socket_conn.recv(1024)
+        data = SocketManager.GetLatestMessage(handle, timeout=timeout)
 
         couleur_equipe = is_json_decodable(data)
 
@@ -98,33 +105,36 @@ def receive_couleur_equipe(socket_conn, timeout=600):
         else:
             print("⚠️ Données reçues invalides :", data)
             return None
+    except Exception as e :
+        print(f"error getting team color : {str(e)}")
+    
+    """
     except socket.timeout:
         print("⚠️ Timeout en attente de la couleur de l'équipe")
         return None
     except ConnectionResetError:
         print("❌ Connexion réinitialisée par le serveur.")
         return None
-    finally:
-        if timeout is not None:
-            socket_conn.settimeout(None)
+    """
+    
 
-def couleur_equipe(socket_conn,lcd):
+
+def couleur_equipe(handle):
     """
     Attend jusqu'à 10 minutes pour recevoir la couleur d'équipe.
     Si elle n'est pas reçue ou si la connexion est perdue, quitte le programme.
     """
-    message_lcd(lcd,"couleur ???")
-    couleur = receive_couleur_equipe(socket_conn, timeout=600)  # 10 minutes
+    couleur = receive_couleur_equipe(handle, timeout=600)  # 10 minutes
     if couleur:
         print(f"✅ Couleur de l'équipe confirmée : {couleur}")
         message_lcd(lcd,f"couleur {couleur}")
         return couleur
     else:
         print("❌ Aucune couleur d'équipe reçue dans le délai imparti ou erreur réseau.")
-        socket_conn.close()
+        handle.Close()
         sys.exit(1)
 
-def wait_start_match(socket_conn):
+def wait_start_match(handle):
     """
     Démarre le timer à la réception de START_MATCH.
     Retourne le temps écoulé depuis le début du match.
@@ -133,7 +143,7 @@ def wait_start_match(socket_conn):
 
     if _start_time is None:
         print("⏳ Attente du signal de début de match...")
-        data = socket_conn.recv(1024)
+        data = SocketManager.GetLatestMessage(handle)
         if data == b"START_MATCH\n":
             print("✅ Signal de début de match reçu")
             _start_time = time.time()

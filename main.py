@@ -2,7 +2,7 @@ from setup_camera import setup_cameras
 from detection_yolo import process_frames
 from localisation import localisations_tas
 import cv2
-from communication_client import setup_connexion, send_data, couleur_equipe, wait_start_match
+from communication_client import setup_connexion, verify_connexion, send_data, couleur_equipe, wait_start_match
 from ecrans_lcd import setup_lcd
 
 lcd = setup_lcd()
@@ -10,7 +10,9 @@ lcd = setup_lcd()
 cap_droite, cap_gauche, cap_haut = setup_cameras()
 
 # Establish connection to the server
-socket_conn = setup_connexion(lcd)
+connexion_handle = setup_connexion()
+verify_connexion(connexion_handle)
+
 
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
 cv2.namedWindow("Camera droite", cv2.WINDOW_NORMAL)
@@ -18,9 +20,9 @@ cv2.namedWindow("Camera gauche", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Camera haut", cv2.WINDOW_NORMAL)
 
 # Boucle pour attendre la réception de la couleur de l'équipe
-couleur_equipe_value = "bleu"
-couleur_equipe_value = couleur_equipe(socket_conn, lcd)
-print(f"Couleur de l'équipe reçue : {couleur_equipe_value}") 
+couleur_equipe_value = None
+couleur_equipe_value = couleur_equipe(connexion_handle)
+print(f"Couleur de l'équipe reçue : {couleur_equipe_value}")
 elapsed_time = 0
 
 # Boucle principale pour traiter les images
@@ -45,9 +47,14 @@ while True:
     print("Validation des tas :", tas_detected)
     print("__________________________________")
 
+
+    # verify connexion is still ok, else attempt to reconnect
+    if not connexion_handle.valid :
+        connexion_handle = setup_connexion()
+
     # Send tas_detected to the server
-    elapsed_time = wait_start_match(socket_conn)
-    send_data(socket_conn, tas_detected)
+    elapsed_time = wait_start_match(connexion_handle)
+    send_data(connexion_handle, tas_detected)
 
     # Quitter la boucle en appuyant sur 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -60,4 +67,4 @@ cap_haut.release()
 cv2.destroyAllWindows()
 
 # Close the socket connection
-socket_conn.close()
+connexion_handle.Close()

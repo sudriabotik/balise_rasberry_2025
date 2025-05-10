@@ -1,3 +1,6 @@
 /recording
 /other
+recording/
+__pycache__
 
+*.log
