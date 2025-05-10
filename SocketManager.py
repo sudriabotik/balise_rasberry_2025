@@ -40,6 +40,7 @@ def AwaitConnexion(sock : socket.socket, connexionName : str, timeout = None) :
     try :
         connexion, address = sock.accept()
         handle = ConnexionHandle(connexion, connexionName)
+        handle.address = address
         return handle
 
     except Exception as e :
@@ -53,7 +54,9 @@ def Connect(sock : socket.socket, ip : str, port : int, connexionName : str, tim
     sock.settimeout(timeout)
     try :
         sock.connect((ip, port))
-        return ConnexionHandle(sock, connexionName)
+        handle = ConnexionHandle(sock, connexionName)
+        handle.address = (ip, port)
+        return handle
     except Exception as e :
         WriteToMainLog(f"couldn't connect to {ip}:{port} : {str(e)}")
         return None
@@ -67,6 +70,8 @@ class ConnexionHandle :
 
         self.connexion = connexion # the object to use for sending and receiving, socket for a client and connexion for a host
         assert type(connexion) == socket.socket
+        
+        self.address = () # the address it is connected to, tuple (ip, port)
 
         self.receptionBuffer = "" # whenever we read the reception buffer, store incomplete messages in there
         self.messageBuffer = [] # list of full message received
@@ -173,7 +178,8 @@ def GetLatestMessage(connexionHandle : ConnexionHandle, update = True, timeout =
     if len(connexionHandle.messageBuffer) == 0 : return None
     return connexionHandle.messageBuffer.pop(-1)
 
-def FlushStoredMessages(connexionHandle : ConnexionHandle) :
+# give the list of all the stored messages, and clear the list in the handle
+def DumpStoredMessages(connexionHandle : ConnexionHandle) :
     messages = connexionHandle.messageBuffer
     connexionHandle.messageBuffer = []
     return messages

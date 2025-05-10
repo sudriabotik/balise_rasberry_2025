@@ -1,4 +1,4 @@
-import socket
+import SocketManager
 import json
 import time
 import sys
@@ -8,47 +8,54 @@ from pi_robot_serveur.reception_serveur import recevoir_messages_jsonl
 HOST = ''  # Listen on all available network interfaces
 PORT = 65432
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_socket.bind((HOST, PORT))
-    server_socket.listen(1)
-    print(f"🟢 Serveur en écoute sur le port {PORT}")
+sock_host = SocketManager.CreateSocket()
 
-    conn, addr = server_socket.accept()
-    with conn:
-        print("✅ Connecté par", addr)
-        msg = conn.recv(1024)
-        print("📥 Message reçu :",repr(msg))
-        if msg == b"HELLO\n":
-            conn.send(b"ACK\n")
-            print("✅ Message de bienvenue envoyé au client ACK")
-        else:
-            print("❌ Message de bienvenue non reconnu, fermeture de la connexion.")
-            conn.close()
-            sys.exit(1)
-        # Attente de 30 secondes avant d'envoyer la couleur
-        print("⏳ Attente de 10 secondes avant d'envoyer la couleur...")
-        time.sleep(10)
+SocketManager.StartHost(sock_host, PORT)
 
-        couleur = "bleu"
-        conn.sendall(json.dumps(couleur).encode())
-        print("🎨 Couleur envoyée :", couleur)
+print(f"🟢 Serveur en écoute sur le port {PORT}")
+handle = SocketManager.AwaitConnexion(sock_host, "host")
 
-        print("⏳ Attente de 15 secondes avant d'envoyer START_MATCH...")
-        time.sleep(15)
-        conn.sendall(b"START_MATCH\n")
-        print("✅ START_MATCH envoyé au client")
-        time.sleep(2)
 
-        recv_buffer = ""
-        conn.setblocking(False)  # Set the socket to non-blocking mode
-        while True:
-            recv_buffer, messages, closed = recevoir_messages_jsonl(conn, recv_buffer)
+print("✅ Connecté par", handle.address)
 
-            if closed:
-                break
+# wait indefinitely for a message
+msg = SocketManager.GetLatestMessage(handle)
+print("📥 Message reçu :",repr(msg))
+if msg == "HELLO":
+    SocketManager.SendMessage(handle, "ACK")
+    print("✅ Message de bienvenue envoyé au client ACK")
+else:
+    print("❌ Message de bienvenue non reconnu, fermeture de la connexion.")
+    handle.Close()
+    sys.exit(1)
 
-            for message in messages:
-                print("📨 Donnée reçue :", message)
+# Attente de 30 secondes avant d'envoyer la couleur
+print("⏳ Attente de 10 secondes avant d'envoyer la couleur...")
+time.sleep(10)
 
-            time.sleep(0.2)  # Simulate some processing time
+couleur = "bleu"
+SocketManager.SendMessage(handle, json.dumps(couleur))
+print("🎨 Couleur envoyée :", couleur)
+
+print("⏳ Attente de 15 secondes avant d'envoyer START_MATCH...")
+time.sleep(15)
+SocketManager.SendMessage(handle, "START_MATCH")
+print("✅ START_MATCH envoyé au client")
+time.sleep(2)
+
+recv_buffer = ""
+# with SocketManager the timeout is set for each send / receive
+# conn.setblocking(False)  # Set the socket to non-blocking mode
+while True:
+    #recv_buffer, messages, closed = recevoir_messages_jsonl(conn, recv_buffer)
+    SocketManager.ReadReceptionBuffer(handle, timeout=0)
+
+    if not handle.valid :
+        break
+
+    messages = SocketManager.DumpStoredMessages(handle)
+
+    for message in messages:
+        print("📨 Donnée reçue :", message)
+
+    time.sleep(0.2)  # Simulate some processing time
