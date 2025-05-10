@@ -1,13 +1,26 @@
-Données envoyées : {'tas_4': False, 'tas_8': False, 'tas_5': True, 'tas_1': True, 'tas_2': False, 'tas_3': False, 'tas_6': False, 'tas_7': False}
+from setup_camera import setup_cameras
+from detection_yolo import process_frames
+from localisation import localisations_tas
+import cv2
+from communication_client import setup_connexion, send_data, couleur_equipe, wait_start_match
+from ecrans_lcd import setup_lcd
 
-0: 640x640 9 canettes, 206.4ms
-Speed: 11.5ms preprocess, 206.4ms inference, 2.4ms postprocess per image at shape (1, 3, 640, 640)
+ 
+# Initialiser les caméras
+cap_droite, cap_gauche, cap_haut = setup_cameras()
 
-0: 640x640 8 canettes, 3 planches, 185.4ms
-Speed: 13.7ms preprocess, 185.4ms inference, 4.3ms postprocess per image at shape (1, 3, 640, 640)
+# Establish connection to the server
+socket_conn = setup_connexion()
 
-0: 640x640 1 canette, 182.1ms
-Speed: 6.7ms preprocess, 182.1ms inference, 3.4ms postprocess per image at shape (1, 3, 640, 640)
-Équipe actuelle : {'tas_4': False, 'tas_8': False, 'tas_5': True, 'tas_1': True, 'tas_2': False, 'tas_3': False, 'tas_6': False, 'tas_7': False}
-Équipe après changement de equipe : {'tas_4': False, 'tas_8': False, 'tas_5': True, 'tas_1': True, 'tas_2': False, 'tas_3': False, 'tas_6': False, 'tas_7': False}
-Validation des tas : {'tas_4': False, 'tas_8': False, 'tas_5': True, 'tas_1': True, 'tas_2': False, 'tas_3': False, 'tas_6': False, 'tas_7': False}
+# Créer trois fenêtres redimensionnables pour l'affichage des détections
+cv2.namedWindow("Camera droite", cv2.WINDOW_NORMAL)
+cv2.namedWindow("Camera gauche", cv2.WINDOW_NORMAL)
+cv2.namedWindow("Camera haut", cv2.WINDOW_NORMAL)
+
+lcd = setup_lcd()
+
+# Boucle pour attendre la réception de la couleur de l'équipe
+couleur_equipe_value = "bleu"
+couleur_equipe_value = couleur_equipe(socket_conn, lcd)
+print(f"Couleur de l'équipe reçue : {couleur_equipe_value}") 
+elapsed_time = 0

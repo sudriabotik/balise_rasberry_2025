@@ -20,9 +20,9 @@ def setup_cameras():
     cap_gauche.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
     cap_gauche.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     cap_gauche.set(cv2.CAP_PROP_FPS, 10)
-    cap_haut.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap_haut.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    cap_haut.set(cv2.CAP_PROP_FPS, 30)
+    cap_haut.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
+    cap_haut.set(cv2.CAP_PROP_FRAME_HEIGHT, 768)
+    cap_haut.set(cv2.CAP_PROP_FPS, 10)
 
     # Limiter le buffer pour chaque caméra
     cap_droite.set(cv2.CAP_PROP_BUFFERSIZE, 1)

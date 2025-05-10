@@ -3,12 +3,14 @@ from detection_yolo import process_frames
 from localisation import localisations_tas
 import cv2
 from communication_client import setup_connexion, send_data, couleur_equipe, wait_start_match
+from ecrans_lcd import setup_lcd
 
+lcd = setup_lcd()
 # Initialiser les caméras
 cap_droite, cap_gauche, cap_haut = setup_cameras()
 
 # Establish connection to the server
-socket_conn = setup_connexion()
+socket_conn = setup_connexion(lcd)
 
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
 cv2.namedWindow("Camera droite", cv2.WINDOW_NORMAL)
@@ -16,9 +18,9 @@ cv2.namedWindow("Camera gauche", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Camera haut", cv2.WINDOW_NORMAL)
 
 # Boucle pour attendre la réception de la couleur de l'équipe
-couleur_equipe_value = None
-couleur_equipe_value = couleur_equipe(socket_conn)
-print(f"Couleur de l'équipe reçue : {couleur_equipe_value}")
+couleur_equipe_value = "bleu"
+couleur_equipe_value = couleur_equipe(socket_conn, lcd)
+print(f"Couleur de l'équipe reçue : {couleur_equipe_value}") 
 elapsed_time = 0
 
 # Boucle principale pour traiter les images
@@ -27,16 +29,6 @@ while True:
     ret0, frame_droite = cap_droite.read()
     ret1, frame_gauche = cap_gauche.read()
     ret2, frame_haut = cap_haut.read()
-
-    if not ret0:
-        print("Erreur lors de la capture de la caméra 0")
-        break
-    if not ret1:
-        print("Erreur lors de la capture de la caméra 1")
-        break
-    if not ret2:
-        print("Erreur lors de la capture de la caméra 2")
-        break
 
     # Utiliser la fonction process_frames pour traiter les frames
     frames = [frame_droite, frame_gauche, frame_haut]  # List of frames to process

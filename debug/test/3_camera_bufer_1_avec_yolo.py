@@ -7,7 +7,7 @@ import sys
 import time
 
 # Charger le modèle YOLO en mode détection
-model = YOLO('/home/ubuntu/Documents/yolo/detection_yolo/best_canette_ncnn_model', task='detect')
+model = YOLO('/home/ubuntu/Documents/yolo/detection_yolo/best_V2_ncnn_model', task='detect')
 
 device1 = "/dev/camera_droite"
 device2 = "/dev/camera_gauche"

@@ -5,6 +5,7 @@ import json
 import time
 import sys  
 import subprocess
+from ecrans_lcd import message_lcd
 
 #import keyboard  # Requires the 'keyboard' library to detect key presses
 
@@ -40,10 +41,12 @@ def attendre_connexion_serveur(ip, port, timeout_max=300, delai_retentative=1):
     return False
 
 
-def setup_connexion(timeout_max=300):
+def setup_connexion(lcd, timeout_max=300):
     """
     Attend que le serveur soit prêt, puis établit la connexion et retourne le socket.
     """
+    
+    
     if not attendre_connexion_serveur(RASPBERRY_IP, PORT, timeout_max=timeout_max):
         print("⛔ Connexion impossible : le serveur n'a pas été détecté.")
         exit(1)  # Arrête le programme si le serveur n'est pas disponible
@@ -105,14 +108,16 @@ def receive_couleur_equipe(socket_conn, timeout=600):
         if timeout is not None:
             socket_conn.settimeout(None)
 
-def couleur_equipe(socket_conn):
+def couleur_equipe(socket_conn,lcd):
     """
     Attend jusqu'à 10 minutes pour recevoir la couleur d'équipe.
     Si elle n'est pas reçue ou si la connexion est perdue, quitte le programme.
     """
+    message_lcd(lcd,"couleur ???")
     couleur = receive_couleur_equipe(socket_conn, timeout=600)  # 10 minutes
     if couleur:
         print(f"✅ Couleur de l'équipe confirmée : {couleur}")
+        message_lcd(lcd,f"couleur {couleur}")
         return couleur
     else:
         print("❌ Aucune couleur d'équipe reçue dans le délai imparti ou erreur réseau.")

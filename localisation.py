@@ -1,7 +1,7 @@
 import cv2
 
 def get_rectangles_and_tas(equipe):
-    if equipe == "bleu":
+    if equipe == "jaune":
         return {
             "rectangle4": (560, 130, 750, 255),
             "rectangle8": (130, 250, 370, 420),
@@ -58,13 +58,7 @@ def localisations_tas(objects_detected_by_frame, frames, equipe, elapsed_time):
                     tas_counts[tas_name] += 1
 
         # Draw rectangles on the corresponding frame
-        for rectangle, _ in rectangles_by_frame[frame_index]:
-            cv2.rectangle(
-                frames[frame_index],
-                (rectangle[0], rectangle[1]),
-                (rectangle[2], rectangle[3]),
-                (0, 255, 0), 2  # Green rectangle
-            )
+        draw_tas_rectangles(frames, rectangles_by_frame)
 
     # Validate piles based on the number of objects inside each rectangle
     pile_validations = {
@@ -103,3 +97,25 @@ def changement_equipe(tas, equipe):
         tas['tas_7'] = tas_temp['tas_6']
         print("Équipe après changement de equipe :", tas)
     return tas
+
+def draw_tas_rectangles(frames, rectangles_by_frame):
+    for frame_index, frame_rects in enumerate(rectangles_by_frame):
+        for rectangle, tas_name in frame_rects:
+            # Dessin du rectangle
+            cv2.rectangle(
+                frames[frame_index],
+                (rectangle[0], rectangle[1]),
+                (rectangle[2], rectangle[3]),
+                (0, 255, 0), 2
+            )
+
+            # Affichage du nom du tas
+            cv2.putText(
+                frames[frame_index],
+                tas_name,
+                (rectangle[0], rectangle[1] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0, 255, 0), 2,
+                cv2.LINE_AA
+            )
