@@ -66,7 +66,7 @@ def setup_connexion(lcd, timeout_max=300):
 
 def verify_connexion(handle) :
     SocketManager.SendMessage(handle, "HELLO", timeout=None) # ← premier message
-    msg_ack = SocketManager.GetNewestMessage(handle, timeout=None)
+    msg_ack = SocketManager.GetNextMessage(handle, timeout=500)
     if msg_ack == "ACK":
         print("✅ Message de bienvenue reçu du serveur")
 
@@ -119,11 +119,12 @@ def receive_couleur_equipe(handle, timeout=600):
     
 
 
-def couleur_equipe(handle):
+def couleur_equipe(handle, lcd):
     """
     Attend jusqu'à 10 minutes pour recevoir la couleur d'équipe.
     Si elle n'est pas reçue ou si la connexion est perdue, quitte le programme.
     """
+    message_lcd(lcd,"couleur ???")
     couleur = receive_couleur_equipe(handle, timeout=600)  # 10 minutes
     if couleur:
         print(f"✅ Couleur de l'équipe confirmée : {couleur}")
@@ -143,8 +144,10 @@ def wait_start_match(handle):
 
     if _start_time is None:
         print("⏳ Attente du signal de début de match...")
-        data = SocketManager.GetLatestMessage(handle)
-        if data == b"START_MATCH\n":
+        data = SocketManager.GetLatestMessage(handle, timeout= 500)
+        print("type data", type(data))
+        print("data reçu singal match", repr(data))
+        if data.strip() == "START_MATCH":
             print("✅ Signal de début de match reçu")
             _start_time = time.time()
             return 0.0

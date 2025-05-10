@@ -10,7 +10,7 @@ lcd = setup_lcd()
 cap_droite, cap_gauche, cap_haut = setup_cameras()
 
 # Establish connection to the server
-connexion_handle = setup_connexion()
+connexion_handle = setup_connexion(lcd)
 verify_connexion(connexion_handle)
 
 
@@ -21,7 +21,7 @@ cv2.namedWindow("Camera haut", cv2.WINDOW_NORMAL)
 
 # Boucle pour attendre la réception de la couleur de l'équipe
 couleur_equipe_value = None
-couleur_equipe_value = couleur_equipe(connexion_handle)
+couleur_equipe_value = couleur_equipe(connexion_handle, lcd)
 print(f"Couleur de l'équipe reçue : {couleur_equipe_value}")
 elapsed_time = 0
 
