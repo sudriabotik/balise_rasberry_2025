@@ -5,41 +5,16 @@ from ultralytics import YOLO
 import cv2
 import sys
 import time
+from setup_camera import setup_cameras
+from localisation_V2 import create_aruco_detector, process_frame_qr_only
+
 
 # Charger le modèle YOLO en mode détection
 model = YOLO('/home/ubuntu/Documents/yolo/detection_yolo/best_V2_ncnn_model', task='detect')
 
-device1 = "/dev/camera_droite"
-device2 = "/dev/camera_gauche"
-device3 = "/dev/camera_haut"
-cap_droite = cv2.VideoCapture(device1)
-cap_gauche = cv2.VideoCapture(device2)
-cap_haut = cv2.VideoCapture(device3)
+detector = create_aruco_detector()
 
-cap_droite.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
-cap_droite.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-cap_droite.set(cv2.CAP_PROP_FPS, 10)
-cap_gauche.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
-cap_gauche.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-cap_gauche.set(cv2.CAP_PROP_FPS, 10)
-cap_haut.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
-cap_haut.set(cv2.CAP_PROP_FRAME_HEIGHT, 768)
-cap_haut.set(cv2.CAP_PROP_FPS, 10)
-
-# Limiter le buffer pour chaque caméra
-cap_droite.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-cap_gauche.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-cap_haut.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-# Vérifier l'ouverture de chaque caméra
-if not cap_droite.isOpened():
-    print("Erreur : Impossible d'ouvrir la caméra 0")
-    sys.exit()
-if not cap_gauche.isOpened():
-    print("Erreur : Impossible d'ouvrir la caméra 1")
-    sys.exit()
-if not cap_haut.isOpened():
-    print("Erreur : Impossible d'ouvrir la caméra 2")
-    sys.exit()
+cap_droite, cap_gauche, cap_haut = setup_cameras()
 
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
 cv2.namedWindow("Detection Camera 0", cv2.WINDOW_NORMAL)
@@ -67,10 +42,18 @@ while True:
     results1 = model(frame1)
     results2 = model(frame2)
 
-    # Récupérer les images annotées avec les détections
-    annotated_frame0 = results0[0].plot()
-    annotated_frame1 = results1[0].plot()
-    annotated_frame2 = results2[0].plot()
+# 1. Utiliser process_frame_qr_only AVANT l'annotation YOLO
+    annotated_frame0, valid0  = process_frame_qr_only(frame0.copy(), "Camera droite", detector, boxes=results0[0].boxes)
+    annotated_frame1, valid1 = process_frame_qr_only(frame1.copy(), "Camera gauche", detector, boxes=results1[0].boxes)
+
+    print("[Camera droite] État des tas :", valid0)
+    print("[Camera gauche] État des tas :", valid1)
+
+    # 2. Puis appliquer les annotations YOLO sur l'image de sortie si tu veux les voir aussi
+    annotated_frame0 = results0[0].plot(img=annotated_frame0)
+    annotated_frame1 = results1[0].plot(img=annotated_frame1)
+    annotated_frame2 = results2[0].plot()  # pas traité pour l'instant
+    
 
     # Afficher les images annotées dans leurs fenêtres respectives
     cv2.imshow("Detection Camera 0", annotated_frame0)
