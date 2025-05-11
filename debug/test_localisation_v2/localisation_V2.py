@@ -33,9 +33,8 @@ rectangle_params_par_tas = {
     "tas_3": {"zone_distance": 250, "rect_w": 200, "rect_h": 130}
 }
 
-# === Stockage mémoire des rectangles de tas persistants ===
-persistent_rectangles = {"Camera droite": {}, "Camera gauche": {}}
-persistent_labels_used = set()
+# === Sauvegarde des rectangles persistants ===
+rectangles_persistants = {}
 
 # === Création du détecteur ArUco ===
 def create_aruco_detector():
@@ -108,15 +107,8 @@ def valider_contenu_tas(rect, boxes):
                 count_class_1 += 1
     return count_class_0, count_class_1
 
-# === Génération ou récupération d'un rectangle de tas persisté ===
-def get_or_create_rectangle(label, diag, nom_camera):
-    if diag is None:
-        if label in persistent_rectangles[nom_camera] and label not in persistent_labels_used:
-            print(f"[INFO] QR non visible, rectangle persisté utilisé pour {label}")
-            persistent_labels_used.add(label)
-            return persistent_rectangles[nom_camera][label]
-        return None
-
+# === Création d'un rectangle de tas à partir de sa diagonale ===
+def create_rectangle(label, diag):
     params = rectangle_params_par_tas[label]
     zone_distance = params["zone_distance"]
     rect_w = params["rect_w"]
@@ -131,10 +123,7 @@ def get_or_create_rectangle(label, diag, nom_camera):
     cible = np.array(p1) + direction * zone_distance
     cx, cy = int(cible[0]), int(cible[1])
 
-    rect = shapely_box(cx - rect_w//2, cy - rect_h//2, cx + rect_w//2, cy + rect_h//2)
-    persistent_rectangles[nom_camera][label] = rect
-    print(f"[DEBUG] Rectangle mis à jour pour {label}")
-    return rect
+    return shapely_box(cx - rect_w//2, cy - rect_h//2, cx + rect_w//2, cy + rect_h//2)
 
 # === Association objets ↔ diagonales avec zone restreinte ===
 def associer_objets_diagonales(boxes, diagonales, diag_labels, nom_camera, image,
@@ -143,25 +132,32 @@ def associer_objets_diagonales(boxes, diagonales, diag_labels, nom_camera, image
         tas_deja_affiches = set()
 
     validation_par_tas = {}
-    persistent_labels_used.clear()
-
     diag_dict = {label: diag for diag, label in zip(diagonales, diag_labels)}
     labels_uniques = list(aruco_to_tas.values())
     tas_autorises = tas_par_camera.get(nom_camera, set())
+    print(f"[INFO] Tas autorisés pour {nom_camera}: {tas_autorises}")
+    print(f"[INFO] Tas déjà affichés: {tas_deja_affiches}")
 
     for label in labels_uniques:
         if label in tas_deja_affiches or label not in tas_autorises:
+            print(f"[INFO] Tas {label} déjà affiché ou non autorisé pour {nom_camera}")
             continue
 
         diag = diag_dict.get(label)
-        rect = get_or_create_rectangle(label, diag, nom_camera)
-        if rect is None:
-            continue
+
+        if diag is not None:
+            rect = create_rectangle(label, diag)
+            rectangles_persistants[label] = rect
+            print(f"[INFO] Rectangle mis à jour pour {label}")
+        else:
+            rect = rectangles_persistants.get(label)
+            if rect is None:
+                print(f"[INFO] Aucun rectangle disponible pour {label}, QR non visible")
+                continue
+            else:
+                print(f"[INFO] Rectangle réutilisé pour {label}, QR non visible")
 
         minx, miny, maxx, maxy = map(int, rect.bounds)
-        #cv2.rectangle(image, (minx, miny), (maxx, maxy), (255, 0, 0), 2)
-        #cv2.putText(image, label, (minx, miny - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
-
         count_class_0, count_class_1 = valider_contenu_tas(rect, boxes)
 
         color = (0, 0, 255) if count_class_0 >= 3 and count_class_1 >= 1 else (255, 0, 0)
@@ -200,11 +196,10 @@ def process_frame_qr_only(frame, nom_camera, detector, boxes=None):
             frame, validation_par_tas = associer_objets_diagonales(boxes, diagonales, diag_labels, nom_camera, frame)
 
     else:
-        print("[INFO] Aucun ArUco visible - réutilisation des rectangles persistants")
-        for label, rect in persistent_rectangles[nom_camera].items():
-            minx, miny, maxx, maxy = map(int, rect.bounds)
-            cv2.rectangle(frame, (minx, miny), (maxx, maxy), (200, 200, 0), 2)
-            cv2.putText(frame, label, (minx, miny - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 0), 2)
-            validation_par_tas[label] = False  # par défaut, non validé
+        print(f"[INFO] Aucun ArUco détecté sur {nom_camera}")
+        if boxes is not None:
+            # Appel avec listes vides : aucune diagonale visible
+            frame, validation_par_tas = associer_objets_diagonales(boxes, [], [], nom_camera, frame)
 
     return frame, validation_par_tas
+
