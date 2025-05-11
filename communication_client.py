@@ -13,6 +13,8 @@ import SocketManager
 RASPBERRY_IP = '192.168.0.103'  
 PORT = 65432
 
+CONNECT_TIMEOUT = None
+
 _start_time = None  # initialisé une seule fois
 
 SocketManager.Init()
@@ -25,6 +27,21 @@ def ping_raspberry(ip):
         return True
     except subprocess.CalledProcessError:
         return False
+
+def connexion_process() :
+
+    handle = SocketManager.Connect(sock, RASPBERRY_IP, PORT, "balise")
+    if handle == None : return None
+
+    SocketManager.SendMessage(handle, "HELLO", timeout=CONNECT_TIMEOUT)
+    if not handle.valid : return None
+
+    msg = SocketManager.GetLatestMessage(handle, timeout=CONNECT_TIMEOUT)
+    if not handle.valid : return None
+
+    if msg != "ACK" : return None
+
+    return handle
     
 def attendre_connexion_serveur(ip, port, timeout_max=300, delai_retentative=1):
     """
@@ -51,16 +68,16 @@ def setup_connexion(lcd, timeout_max=300):
     Attend que le serveur soit prêt, puis établit la connexion et retourne le socket.
     """
     
-    
+    """
     if not attendre_connexion_serveur(RASPBERRY_IP, PORT, timeout_max=timeout_max):
         print("⛔ Connexion impossible : le serveur n'a pas été détecté.")
         exit(1)  # Arrête le programme si le serveur n'est pas disponible
-
+    """
     print("Connexion en cours...")
     handle = SocketManager.Connect(sock, RASPBERRY_IP, PORT, "balise", timeout=None)
     if handle == None : return None
     print("✅ Connecté au serveur")
-    time.sleep(2)  # Attendre un peu pour s'assurer que le serveur est prêt
+    #time.sleep(2)  # Attendre un peu pour s'assurer que le serveur est prêt
     
     return handle
 
@@ -134,6 +151,22 @@ def couleur_equipe(handle, lcd):
         print("❌ Aucune couleur d'équipe reçue dans le délai imparti ou erreur réseau.")
         handle.Close()
         sys.exit(1)
+
+def exchange_infos(handle) :
+
+    try :
+        SocketManager.DumpStoredMessages()
+        msg = SocketManager.GetLatestMessage(handle)
+        if msg != "START_MATCH" : return None
+        SocketManager.SendMessage(handle, "WHAT_COLOR")
+        msg = SocketManager.GetLatestMessage(handle)
+        color = msg
+        SocketManager.SendMessage(handle, "OK")
+
+        return color
+    
+    except :
+        pass
 
 def wait_start_match(handle):
     """

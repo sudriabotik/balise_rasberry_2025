@@ -2,16 +2,21 @@ from setup_camera import setup_cameras
 from detection_yolo import process_frames
 from localisation import localisations_tas
 import cv2
-from communication_client import setup_connexion, verify_connexion, send_data, couleur_equipe, wait_start_match
+from communication_client import setup_connexion, connexion_process, send_data, couleur_equipe, wait_start_match, exchange_infos
 from ecrans_lcd import setup_lcd
+
+import time
 
 lcd = setup_lcd()
 # Initialiser les caméras
 cap_droite, cap_gauche, cap_haut = setup_cameras()
 
 # Establish connection to the server
-connexion_handle = setup_connexion(lcd)
-verify_connexion(connexion_handle)
+
+#connexion_handle = setup_connexion(lcd)
+#verify_connexion(connexion_handle)
+
+connexion_handle = connexion_process()
 
 
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
@@ -21,9 +26,10 @@ cv2.namedWindow("Camera haut", cv2.WINDOW_NORMAL)
 
 # Boucle pour attendre la réception de la couleur de l'équipe
 couleur_equipe_value = None
-couleur_equipe_value = couleur_equipe(connexion_handle, lcd)
+#couleur_equipe_value = couleur_equipe(connexion_handle, lcd)
 print(f"Couleur de l'équipe reçue : {couleur_equipe_value}")
 elapsed_time = 0
+start_time = None
 
 # Boucle principale pour traiter les images
 while True:
@@ -49,12 +55,29 @@ while True:
 
 
     # verify connexion is still ok, else attempt to reconnect
-    if not connexion_handle.valid :
-        connexion_handle = setup_connexion()
+    if connexion_handle == None :
+        connexion_handle = connexion_process()
+    else :
+        if not connexion_handle.valid :
+            try :
+                connexion_handle.Close() # we do not really care of this cause an error, it's just to try to close it just in case
+            finally :
+                connexion_handle = connexion_process()
 
     # Send tas_detected to the server
-    elapsed_time = wait_start_match(connexion_handle)
-    send_data(connexion_handle, tas_detected)
+
+    if couleur_equipe_value == None : # it means the match has not yet started
+        couleur_equipe_value = exchange_infos()
+        if couleur_equipe_value != None : # this mean the robot sent that the match have started
+            start_time = time.time()
+
+    try :
+        
+        #elapsed_time = wait_start_match(connexion_handle)
+        elapsed_time = time.time() - start_time
+        send_data(connexion_handle, tas_detected)
+    except Exception as e :
+        pass
 
     # Quitter la boucle en appuyant sur 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
