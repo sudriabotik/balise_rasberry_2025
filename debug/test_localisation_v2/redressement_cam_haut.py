@@ -47,14 +47,7 @@ def calculer_centre_aruco(corners, ids):
 def position_aruco(frame, detector):
     gray = preprocess_for_aruco(frame)
     corners, ids = detect_aruco(gray, detector)
-    '''
-    if ids is None or len(ids) < 4:
-        print("❌ Moins de 4 ArUco détectés")
-        cv2.imshow("Camera haut", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            sys.exit(1)
-        return None
-    '''
+
     pts_image = calculer_centre_aruco(corners, ids)
     if pts_image is None:
         print("❌ Erreur de calcul des centres ArUco")
@@ -77,35 +70,33 @@ def redressement(frame, pts_image):
         warped = cv2.circle(warped, (int(pt[0]), int(pt[1])), 20, (255, 0, 0), -1)
 
     return warped, matrix
-def coordonner_terrain(detections, mat,image):
+def coordonner_terrain(detections, mat, image):
     """
     Transforme les coordonnées image des objets détectés vers les coordonnées du terrain (x, y).
-
+    
     Args:
-        detections: liste de détections [[{coordinates: [...], class: ...}, ...]]
+        detections: liste de détections [{coordinates: [...], class: ...}, ...]
         mat: matrice de perspective OpenCV 3x3
+        image: image redressée pour afficher les points détectés
 
     Returns:
         liste de tuples (x, y) des positions projetées sur le terrain
     """
     positions = []
 
-    if not detections or not isinstance(detections[0], list):
+    if not detections or not isinstance(detections, list):
         print("[ERREUR] Format inattendu pour detections")
-        print(f"Traitement de l'objet #{i} : {obj}")
-        print(f"Type de l'objet #{i} : {type(obj)}")
-        print(f"Type de la obj : {type(obj)}")
-        print(f"Type de la obj['coordinates'] : {type(obj['coordinates'])}")
-        print(f"Valeur de la obj['coordinates'] : {obj['coordinates']}")
-        
+        print(f"Type de detections : {type(detections)}")
+        print(f"Valeur de detections : {detections}")
+        return positions
 
-    for i, obj in enumerate(detections[0]):
+    for i, obj in enumerate(detections):
         try:
             if not isinstance(obj, dict):
                 raise TypeError("L'objet n'est pas un dictionnaire")
-            
+
             if obj.get("class") != 1.0:
-                continue  # On ignore les objets qui ne sont pas de classe 1
+                continue  # Ignore les objets qui ne sont pas de classe 1
 
             coords = obj["coordinates"]
             x1, y1, x2, y2 = coords
@@ -127,6 +118,7 @@ def coordonner_terrain(detections, mat,image):
             print(f"[ERREUR] Impossible de transformer le point #{i} : {e}")
 
     return positions
+
 
 zones_tas = {
     "tas_2": {"x_min": 600, "x_max": 900, "y_min": 20, "y_max": 200},
@@ -169,4 +161,21 @@ def localisation_tas(position_elements_jeux, image):
     return tas_detected
 
 
+def traitement_cam_haut(frame_haut, detector, objects_detected):
+    
+    pts_image = position_aruco(frame_haut.copy(), detector) #copie de l'image pour que les annotation ne derange as la detection des qrcode
+    
+    if pts_image is None:
+        print("❌ Erreur de positionnement des ArUco")
+        return None
 
+    warped, matrix = redressement(frame_haut, pts_image)
+
+    print("objects_detected[0]", objects_detected)
+
+    position_elements_jeux = coordonner_terrain(objects_detected, matrix, warped)
+    print("Position des éléments de jeu :", position_elements_jeux) 
+    
+    tas_detected = localisation_tas(position_elements_jeux, warped)
+
+    return  warped, tas_detected 

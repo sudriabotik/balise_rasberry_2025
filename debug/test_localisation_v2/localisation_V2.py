@@ -93,18 +93,25 @@ def compute_qr_diagonals(centers, labels, vectors):
     return diagonales, diag_labels
 
 # === Validation d'un rectangle de tas selon les objets ===
-def valider_contenu_tas(rect, boxes):
+
+def valider_contenu_tas(rect, detections):
     count_class_0 = 0
     count_class_1 = 0
-    for box in boxes:
-        x1, y1, x2, y2 = map(int, box.xyxy[0])
-        cls = int(box.cls[0]) if hasattr(box, 'cls') else 0
-        bbox = shapely_box(x1, y1, x2, y2)
-        if rect.intersects(bbox):
-            if cls == 0:
-                count_class_0 += 1
-            elif cls == 1:
-                count_class_1 += 1
+
+    for i, det in enumerate(detections):
+        try:
+            x1, y1, x2, y2 = map(int, det['coordinates'])
+            cls = int(det['class'])
+            bbox = shapely_box(x1, y1, x2, y2)
+
+            if rect.intersects(bbox):
+                if cls == 0:
+                    count_class_0 += 1
+                elif cls == 1:
+                    count_class_1 += 1
+        except Exception as e:
+            print(f"[ERREUR] Objet #{i} invalide : {e}")
+
     return count_class_0, count_class_1
 
 # === Création d'un rectangle de tas à partir de sa diagonale ===
