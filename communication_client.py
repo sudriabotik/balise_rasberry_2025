@@ -10,7 +10,7 @@ import SocketManager
 
 #import keyboard  # Requires the 'keyboard' library to detect key presses
 
-RASPBERRY_IP = '192.168.0.103'  
+RASPBERRY_IP = '192.168.0.104'  
 PORT = 65432
 
 CONNECT_TIMEOUT = None
@@ -155,13 +155,16 @@ def couleur_equipe(handle, lcd):
 def exchange_infos(handle) :
 
     try :
-        SocketManager.DumpStoredMessages()
+        #SocketManager.DumpStoredMessages()
         msg = SocketManager.GetLatestMessage(handle)
+        print(f"received {msg}")
         if msg != "START_MATCH" : return None
         SocketManager.SendMessage(handle, "WHAT_COLOR")
         msg = SocketManager.GetLatestMessage(handle)
+        print(f"received {msg}")
         color = msg
         SocketManager.SendMessage(handle, "OK")
+        print("sent ok")
 
         return color
     

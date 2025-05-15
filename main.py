@@ -9,7 +9,7 @@ import time
 
 lcd = setup_lcd()
 # Initialiser les caméras
-cap_droite, cap_gauche, cap_haut = setup_cameras()
+#cap_droite, cap_gauche, cap_haut = setup_cameras()
 
 # Establish connection to the server
 
@@ -18,11 +18,12 @@ cap_droite, cap_gauche, cap_haut = setup_cameras()
 
 connexion_handle = connexion_process()
 
-
+"""
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
 cv2.namedWindow("Camera droite", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Camera gauche", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Camera haut", cv2.WINDOW_NORMAL)
+"""
 
 # Boucle pour attendre la réception de la couleur de l'équipe
 couleur_equipe_value = None
@@ -33,6 +34,37 @@ start_time = None
 
 # Boucle principale pour traiter les images
 while True:
+    
+    # verify connexion is still ok, else attempt to reconnect
+    print(connexion_handle)
+    if connexion_handle == None :
+        print("connexion handle is None")
+        connexion_handle = connexion_process()
+    else :
+        if not connexion_handle.valid :
+            print("invalid connexion handle")
+            try :
+                connexion_handle.Close() # we do not really care of this cause an error, it's just to try to close it just in case
+            finally :
+                connexion_handle = connexion_process()
+    
+    
+    if couleur_equipe_value == None : # it means the match has not yet started
+        couleur_equipe_value = exchange_infos(connexion_handle)
+        if couleur_equipe_value != None : # this mean the robot sent that the match have started
+            start_time = time.time()
+            print(f"match started, with color {couleur_equipe_value}")
+        else :
+            print("failed to obtain informations from the robot")
+            time.sleep(1)
+            continue
+    
+    print("lala")
+    
+    time.sleep(1)
+    continue
+    
+    
     # Capture d'une image depuis chaque caméra
     ret0, frame_droite = cap_droite.read()
     ret1, frame_gauche = cap_gauche.read()
@@ -54,22 +86,11 @@ while True:
     print("__________________________________")
 
 
-    # verify connexion is still ok, else attempt to reconnect
-    if connexion_handle == None :
-        connexion_handle = connexion_process()
-    else :
-        if not connexion_handle.valid :
-            try :
-                connexion_handle.Close() # we do not really care of this cause an error, it's just to try to close it just in case
-            finally :
-                connexion_handle = connexion_process()
+    
 
     # Send tas_detected to the server
 
-    if couleur_equipe_value == None : # it means the match has not yet started
-        couleur_equipe_value = exchange_infos()
-        if couleur_equipe_value != None : # this mean the robot sent that the match have started
-            start_time = time.time()
+    
 
     try :
         
