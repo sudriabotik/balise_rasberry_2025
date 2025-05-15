@@ -3,12 +3,12 @@ import json
 import time
 import sys
 import threading
-from pi_robot_serveur.reception_serveur import recevoir_messages_jsonl
+from reception_serveur import recevoir_messages_jsonl
 
 HOST = ''  # Listen on all available network interfaces
 PORT = 65432
 
-CONNECT_TIMEOUT = None
+CONNECT_TIMEOUT = 2
 
 color = "bleu"
 
@@ -26,7 +26,7 @@ def ConnexionProcess() :
     if not handle.valid :
         handle.Close()
         return None
-    print("📥 Message reçu :", msg)
+    print(f"📥 Message reçu : {msg}, {type(msg)}")
 
     if msg != "HELLO" :
         handle.Close()
@@ -50,9 +50,12 @@ def SendAllInfos(handle : SocketManager.ConnexionHandle) :
         try :
             SocketManager.DumpStoredMessages(handle)
             SocketManager.SendMessage(handle, "START_MATCH")
+            print("sent START_MATCH")
             msg = SocketManager.GetLatestMessage(handle)
+            print(f"received {msg}")
             if msg != "WHAT_COLOR" : return
             SocketManager.SendMessage(handle, json.dumps(color))
+            print(f"sent color {color}")
             msg = SocketManager.GetLatestMessage(handle)
             if msg != "OK" : return
 
@@ -69,12 +72,12 @@ handle = ConnexionProcess()
 print("✅ Connecté par", handle.address)
 
 # wait indefinitely for a message
-msg = SocketManager.GetLatestMessage(handle)
+#msg = SocketManager.GetLatestMessage(handle)
 
 # Attente de 30 secondes avant d'envoyer la couleur
-print("⏳ Attente de 10 secondes avant d'envoyer la couleur...")
-time.sleep(10)
-
+print("⏳ Attente de 5 secondes avant d'envoyer la couleur...")
+time.sleep(5)
+"""
 couleur = "bleu"
 SocketManager.SendMessage(handle, json.dumps(couleur))
 print("🎨 Couleur envoyée :", couleur)
@@ -84,7 +87,7 @@ time.sleep(15)
 SocketManager.SendMessage(handle, "START_MATCH")
 print("✅ START_MATCH envoyé au client")
 time.sleep(2)
-
+"""
 infoThread = threading.Thread(target=SendAllInfos, args=[handle])
 infoThread.start()
 
@@ -121,6 +124,7 @@ while True:
 
             infoThread = threading.Thread(target=SendAllInfos, args=[handle])
             infoThread.start()
+            print("restarted thread")
     
 
     
