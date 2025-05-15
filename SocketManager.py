@@ -1,7 +1,9 @@
 import socket
 from datetime import datetime
+import traceback
 
 
+lastErrCode = 0
 
 def Init() :
     global mainLog
@@ -12,12 +14,13 @@ def Stop() :
     global mainLog
     mainLog.close()
 
-def WriteToMainLog(content : str) :
+def WriteToMainLog(content : str, error = True) :
     global mainLog
     string = f"{datetime.now().time()} : {content}\n"
     mainLog.write(string)
     mainLog.flush() # make sure the change are written right now, because the file might not be closed properly
     print(string, end="")
+    if error : print(traceback.format_exc())
 
 
 
@@ -34,10 +37,11 @@ def StartHost(sock : socket.socket, port : int) :
 
 """connexionName is just a name for the connexion log """
 def AwaitConnexion(sock : socket.socket, connexionName : str, timeout = None) :
-    sock.listen()
-    sock.settimeout(timeout)
+    
 
     try :
+        sock.listen()
+        sock.settimeout(timeout)
         connexion, address = sock.accept()
         handle = ConnexionHandle(connexion, connexionName)
         handle.address = address
@@ -51,14 +55,16 @@ def AwaitConnexion(sock : socket.socket, connexionName : str, timeout = None) :
 """connexionName is just a name for the connexion log """
 def Connect(sock : socket.socket, ip : str, port : int, connexionName : str, timeout = None) :
 
-    sock.settimeout(timeout)
     try :
+        sock.settimeout(timeout)
         sock.connect((ip, port))
         handle = ConnexionHandle(sock, connexionName)
         handle.address = (ip, port)
         return handle
     except Exception as e :
         WriteToMainLog(f"couldn't connect to {ip}:{port} : {str(e)}")
+        global lastErrCode
+        lastErrCode = e.errno
         return None
     
 
@@ -77,6 +83,7 @@ class ConnexionHandle :
         self.messageBuffer = [] # list of full message received
 
         self.valid = True # starts off as valid when created. Become non-valid depending on error handling
+        self.errorCode = -1 # the error code that caused the handle to become invalid, if there is one
 
         self.logFile = open(logFileName + ".log", "a")
         self.logFile.write("\n\n\n##### NEW RUN #####\n\n")
@@ -100,12 +107,17 @@ def HandleConnexionErrors(connexionHandle : ConnexionHandle, errno : int) :
 
     connexionHandle.WriteToLog(f"processing connexion error with errno : {errno}")
     
-    if errno == 104 : # connexion reset by peer
+    if errno == 9 :
+        connexionHandle.valid = False
+        connexionHandle.errorCode = 9
+        connexionHandle.WriteToLog("socket invalidated")
+    elif errno == 104 : # connexion reset by peer
         connexionHandle.valid = False
         connexionHandle.WriteToLog("connexion invalidated")
     elif errno == 32 : # broken pipe ??
         connexionHandle.valid = False
         connexionHandle.WriteToLog("connexion invalidated")
+
 
 def CreateSocket() :
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -115,9 +127,15 @@ def CreateSocket() :
 """ return true if the image has been sent """
 def SendMessage(connexionHandle : ConnexionHandle, message : str, end="\n", timeout = 0) :
 
-    connexionHandle.connexion.settimeout(timeout)
+    try :
+        if connexionHandle == None :
+            WriteToMainLog("error, connexionHandle is None")
+            return False
+    finally :
+        return False
 
     try :
+        connexionHandle.connexion.settimeout(timeout)
         data = message + end
         data = data.encode()
         connexionHandle.connexion.sendall(data)
@@ -135,10 +153,17 @@ def SendMessage(connexionHandle : ConnexionHandle, message : str, end="\n", time
 """ return the number of new messages that arrived """
 def ReadReceptionBuffer(connexionHandle : ConnexionHandle, timeout = 0) :
 
-    connexionHandle.connexion.settimeout(timeout) # a timeout of 0 has the same affect as setblocking(False)
+    try :
+        if connexionHandle == None :
+            WriteToMainLog("error, connexionHandle is None")
+            return -1
+    finally :
+        return -1
+    
     data = None
 
     try :
+        connexionHandle.connexion.settimeout(timeout) # a timeout of 0 has the same affect as setblocking(False)
         data = connexionHandle.connexion.recv(1028)
 
     except socket.error as error :

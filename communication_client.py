@@ -21,6 +21,16 @@ SocketManager.Init()
 sock = SocketManager.CreateSocket()
 
 
+def recreate_socket():
+    
+    global sock
+    try :
+        sock.close()
+    finally :
+        print("creating a new socket")
+        sock = SocketManager.CreateSocket()
+
+
 def ping_raspberry(ip):
     try:
         output = subprocess.check_output(["ping", "-c", "1", "-W", "1", ip], stderr=subprocess.DEVNULL)
@@ -31,15 +41,24 @@ def ping_raspberry(ip):
 def connexion_process() :
 
     handle = SocketManager.Connect(sock, RASPBERRY_IP, PORT, "balise")
-    if handle == None : return None
+    if handle == None :
+        if SocketManager.lastErrCode == 9 : # invalid file descriptor
+            recreate_socket()
+        return None
 
     SocketManager.SendMessage(handle, "HELLO", timeout=CONNECT_TIMEOUT)
-    if not handle.valid : return None
+    if not handle.valid :
+        handle.Close()
+        return None
 
     msg = SocketManager.GetLatestMessage(handle, timeout=CONNECT_TIMEOUT)
-    if not handle.valid : return None
+    if not handle.valid :
+        handle.Close()
+        return None
 
-    if msg != "ACK" : return None
+    if msg != "ACK" : 
+        handle.Close()
+        return None
 
     return handle
     

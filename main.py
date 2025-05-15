@@ -2,10 +2,12 @@ from setup_camera import setup_cameras
 from detection_yolo import process_frames
 from localisation import localisations_tas
 import cv2
-from communication_client import setup_connexion, connexion_process, send_data, couleur_equipe, wait_start_match, exchange_infos
+from communication_client import recreate_socket, setup_connexion, connexion_process, send_data, couleur_equipe, wait_start_match, exchange_infos
 from ecrans_lcd import setup_lcd
 
 import time
+
+import SocketManager
 
 lcd = setup_lcd()
 # Initialiser les caméras
@@ -15,8 +17,11 @@ lcd = setup_lcd()
 
 #connexion_handle = setup_connexion(lcd)
 #verify_connexion(connexion_handle)
-
+"""
 connexion_handle = connexion_process()
+print(f"tried to connect for the first time, handle is {connexion_handle}")
+"""
+connexion_handle = None
 
 """
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
@@ -46,6 +51,8 @@ while True:
             try :
                 connexion_handle.Close() # we do not really care of this cause an error, it's just to try to close it just in case
             finally :
+                #if connexion_handle.errorCode == 9 : # bad file descriptor, socket is invalidated
+                #    recreate_socket()
                 connexion_handle = connexion_process()
     
     
@@ -60,7 +67,8 @@ while True:
             continue
     
     print("lala")
-    
+    SocketManager.SendMessage(connexion_handle, "lolo")
+
     time.sleep(1)
     continue
     
