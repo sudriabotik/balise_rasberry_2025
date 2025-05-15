@@ -1,15 +1,15 @@
 from setup_camera import setup_cameras
-from detection_yolo import process_frames
+#from detection_yolo import process_frames
 from localisation import localisations_tas
 import cv2
-from communication_client import recreate_socket, setup_connexion, connexion_process, send_data, couleur_equipe, wait_start_match, exchange_infos
-from ecrans_lcd import setup_lcd
+from communication_client import create_handle, setup_connexion, connexion_process, send_data, couleur_equipe, wait_start_match, exchange_infos
+#from ecrans_lcd import setup_lcd
 
 import time
 
 import SocketManager
 
-lcd = setup_lcd()
+#lcd = setup_lcd()
 # Initialiser les caméras
 #cap_droite, cap_gauche, cap_haut = setup_cameras()
 
@@ -21,7 +21,8 @@ lcd = setup_lcd()
 connexion_handle = connexion_process()
 print(f"tried to connect for the first time, handle is {connexion_handle}")
 """
-connexion_handle = None
+
+connexion_handle = create_handle()
 
 """
 # Créer trois fenêtres redimensionnables pour l'affichage des détections
@@ -43,17 +44,12 @@ while True:
     # verify connexion is still ok, else attempt to reconnect
     print(connexion_handle)
     if connexion_handle == None :
-        print("connexion handle is None")
-        connexion_handle = connexion_process()
+        print("this shouldn't happen")
     else :
         if not connexion_handle.valid :
             print("invalid connexion handle")
-            try :
-                connexion_handle.Close() # we do not really care of this cause an error, it's just to try to close it just in case
-            finally :
-                #if connexion_handle.errorCode == 9 : # bad file descriptor, socket is invalidated
-                #    recreate_socket()
-                connexion_handle = connexion_process()
+            connexion_handle.Close() # we do not really care of this cause an error, it's just to try to close it just in case
+            connexion_process(connexion_handle)
     
     
     if couleur_equipe_value == None : # it means the match has not yet started
@@ -69,7 +65,7 @@ while True:
     print("lala")
     SocketManager.SendMessage(connexion_handle, "lolo")
 
-    time.sleep(1)
+    time.sleep(2)
     continue
     
     

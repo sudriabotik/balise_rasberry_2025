@@ -5,12 +5,13 @@ import json
 import time
 import sys  
 import subprocess
-from ecrans_lcd import message_lcd
+#from ecrans_lcd import message_lcd
 import SocketManager
 
 #import keyboard  # Requires the 'keyboard' library to detect key presses
 
-RASPBERRY_IP = '192.168.0.104'  
+#RASPBERRY_IP = '192.168.0.104'  
+RASPBERRY_IP = "localhost"
 PORT = 65432
 
 CONNECT_TIMEOUT = None
@@ -18,17 +19,15 @@ CONNECT_TIMEOUT = None
 _start_time = None  # initialisé une seule fois
 
 SocketManager.Init()
-sock = SocketManager.CreateSocket()
 
 
-def recreate_socket():
+
+# closes the connexion, then 
+def create_handle():
+    handle = SocketManager.ConnexionHandle(SocketManager.CreateSocket(), "balise")
+    handle.valid = False
+    return handle
     
-    global sock
-    try :
-        sock.close()
-    finally :
-        print("creating a new socket")
-        sock = SocketManager.CreateSocket()
 
 
 def ping_raspberry(ip):
@@ -38,29 +37,25 @@ def ping_raspberry(ip):
     except subprocess.CalledProcessError:
         return False
 
-def connexion_process() :
+def connexion_process(handle) :
 
-    handle = SocketManager.Connect(sock, RASPBERRY_IP, PORT, "balise")
-    if handle == None :
-        if SocketManager.lastErrCode == 9 : # invalid file descriptor
-            recreate_socket()
-        return None
+    SocketManager.Reconnect(handle, RASPBERRY_IP, PORT)
 
     SocketManager.SendMessage(handle, "HELLO", timeout=CONNECT_TIMEOUT)
     if not handle.valid :
         handle.Close()
-        return None
+        return False
 
     msg = SocketManager.GetLatestMessage(handle, timeout=CONNECT_TIMEOUT)
     if not handle.valid :
         handle.Close()
-        return None
+        return False
 
     if msg != "ACK" : 
         handle.Close()
-        return None
+        return False
 
-    return handle
+    return True
     
 def attendre_connexion_serveur(ip, port, timeout_max=300, delai_retentative=1):
     """

@@ -66,6 +66,8 @@ def Connect(sock : socket.socket, ip : str, port : int, connexionName : str, tim
         global lastErrCode
         lastErrCode = e.errno
         return None
+
+
     
 
 
@@ -94,13 +96,40 @@ class ConnexionHandle :
         self.logFile.flush() # make sure the change are written right now, because the file might not be closed properly
         print(string, end="")
     
+    # close the connexion
     def Close(self) :
         try :
             self.connexion.close()
+        except Exception as e :
+            print(e)
+    
+    def CloseLog(self) :
+        try :
             self.logFile.close()
         except Exception as e :
             print(e)
 
+
+""" Use this instead of Connect if the handle already exist """
+def Reconnect(handle : ConnexionHandle, ip : str, port : int, timeout = None) :
+    handle.Close()
+    
+    sock = CreateSocket()
+    handle.connexion = sock
+    #sock = handle.connexion
+    
+    try :
+        handle.connexion.settimeout(timeout)
+        handle.connexion.connect((ip, port))
+        handle.connexion = sock
+        handle.address = (ip, port)
+        handle.valid = True
+        return handle
+    except Exception as e :
+        WriteToMainLog(f"couldn't connect to {ip}:{port} : {str(e)}")
+        global lastErrCode
+        lastErrCode = e.errno
+        return None
 
 
 def HandleConnexionErrors(connexionHandle : ConnexionHandle, errno : int) :
@@ -131,7 +160,7 @@ def SendMessage(connexionHandle : ConnexionHandle, message : str, end="\n", time
         if connexionHandle == None :
             WriteToMainLog("error, connexionHandle is None")
             return False
-    finally :
+    except :
         return False
 
     try :
@@ -157,7 +186,7 @@ def ReadReceptionBuffer(connexionHandle : ConnexionHandle, timeout = 0) :
         if connexionHandle == None :
             WriteToMainLog("error, connexionHandle is None")
             return -1
-    finally :
+    except :
         return -1
     
     data = None
@@ -173,7 +202,10 @@ def ReadReceptionBuffer(connexionHandle : ConnexionHandle, timeout = 0) :
 
         connexionHandle.WriteToLog(f"Failed to receive : {str(e)}")
     
-    if not data : return 0 # do nothing if data is empty
+    if not data : # it means the connexion is broken
+        connexionHandle.WriteToLog("received empty bit, connexion broken")
+        connexionHandle.valid = False
+        return -1
     
     # process the data
     data = data.decode()
