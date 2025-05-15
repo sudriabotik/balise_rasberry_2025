@@ -6,9 +6,9 @@ import cv2
 import sys
 import time
 from setup_camera import setup_cameras
-from localisation_V2 import create_aruco_detector, process_frame_qr_only
+from localisation_tas import create_aruco_detector, process_frame_qr_only
 from detection_yolo import process_frames
-from redressement_cam_haut import traitement_cam_haut
+from localisation_tas_cam_haut import traitement_cam_haut
 # Charger le modèle YOLO en mode détection
 #model = YOLO('/home/ubuntu/Documents/yolo/detection_yolo/best_V2_ncnn_model', task='detect')
 
@@ -45,7 +45,7 @@ while True:
     objects_detected = process_frames([frame_droite, frame_gauche, frame_haut])  # Traiter les frames et les annoter directement
     #print("objects_detected", objects_detected)
     #print("type(objects_detected))", type(objects_detected))
-    #print("objects_detected[0]", objects_detected[0])
+    print("objects_detected[0]", objects_detected[0])
     #print("type(objects_detected[0])", type(objects_detected[0]))
     #print("objects_detected[1]", objects_detected[1])
     #print("type(objects_detected[1])", type(objects_detected[1]))

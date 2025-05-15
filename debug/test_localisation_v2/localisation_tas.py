@@ -1,37 +1,48 @@
 import cv2
 import cv2.aruco as aruco
 import numpy as np
-from shapely.geometry import LineString, box as shapely_box
+from shapely.geometry import LineString, Point, box as shapely_box
 
 # === Dictionnaire des IDs ArUco autorisés ===
 aruco_to_tas = {
-    20: "tas_0",
-    21: "tas_1",
-    22: "tas_2",
-    23: "tas_3"
+    20: "tas_8",
+    21: "tas_5",
+    22: "tas_4",
+    23: "tas_1"
 }
 
 # === Caméras et leurs tas autorisés ===
 tas_par_camera = {
-    "Camera droite": {"tas_0", "tas_2"},
-    "Camera gauche": {"tas_1", "tas_3"}
+    "Camera droite": {"tas_4", "tas_8"},
+    "Camera gauche": {"tas_1", "tas_5"}
 }
 
 # === Offset d'angle personnalisé par tas (en degrés) ===
+# sens positif sens horaire
 angle_offsets_par_tas = {
-    "tas_0": -100,
-    "tas_1": 100,
-    "tas_2": -105,
-    "tas_3": 110
+    "tas_5": 100,
+    "tas_8": -100,
+    "tas_4": -110,
+    "tas_1": 110
 }
 
 # === Paramètres de détection personnalisés par tas ===
+'''
 rectangle_params_par_tas = {
-    "tas_0": {"zone_distance": 250, "rect_w": 250, "rect_h": 100},
-    "tas_1": {"zone_distance": 290, "rect_w": 250, "rect_h": 150},
-    "tas_2": {"zone_distance": 250, "rect_w": 250, "rect_h": 150},
-    "tas_3": {"zone_distance": 250, "rect_w": 200, "rect_h": 130}
+    "tas_5": {"zone_distance": 285, "rect_w": 240, "rect_h": 110},
+    "tas_8": {"zone_distance": 255, "rect_w": 220, "rect_h": 115},
+    "tas_4": {"zone_distance": 200, "rect_w": 140, "rect_h": 90},
+    "tas_1": {"zone_distance": 223, "rect_w": 160, "rect_h": 82}
 }
+'''
+#valeur equipe jaune
+rectangle_params_par_tas = {
+    "tas_8": {"zone_distance": 285, "rect_w": 240, "rect_h": 115},
+    "tas_5": {"zone_distance": 255, "rect_w": 220, "rect_h": 115},
+    "tas_1": {"zone_distance": 200, "rect_w": 140, "rect_h": 90},
+    "tas_4": {"zone_distance": 223, "rect_w": 160, "rect_h": 82}
+}
+
 
 # === Sauvegarde des rectangles persistants ===
 rectangles_persistants = {}
@@ -94,20 +105,27 @@ def compute_qr_diagonals(centers, labels, vectors):
 
 # === Validation d'un rectangle de tas selon les objets ===
 
-def valider_contenu_tas(rect, detections):
+def valider_contenu_tas(rect, centres):
+    """
+    Vérifie combien d'objets de chaque classe ont leur centre dans un rectangle.
+
+    Args:
+        rect: shapely Polygon ou Rectangle
+        centres: liste de tuples (x, y, classe)
+
+    Returns:
+        count_class_0, count_class_1
+    """
     count_class_0 = 0
     count_class_1 = 0
-
-    for i, det in enumerate(detections):
+    print("parametre centre ", centres)
+    for i, (x, y, classe) in enumerate(centres):
         try:
-            x1, y1, x2, y2 = map(int, det['coordinates'])
-            cls = int(det['class'])
-            bbox = shapely_box(x1, y1, x2, y2)
-
-            if rect.intersects(bbox):
-                if cls == 0:
+            point = Point(x, y)
+            if rect.contains(point):
+                if classe == 0.0:
                     count_class_0 += 1
-                elif cls == 1:
+                elif classe == 1.0:
                     count_class_1 += 1
         except Exception as e:
             print(f"[ERREUR] Objet #{i} invalide : {e}")
@@ -187,6 +205,8 @@ def process_frame_qr_only(frame, nom_camera, detector, boxes=None):
     if nom_camera not in ["Camera droite", "Camera gauche"]:
         return frame, {}
 
+    coords_centre = visualisation_objects_detected(frame, boxes)
+
     gray = preprocess_for_aruco(frame)
     corners, ids = detect_aruco(gray, detector)
     validation_par_tas = {}
@@ -200,7 +220,7 @@ def process_frame_qr_only(frame, nom_camera, detector, boxes=None):
             cv2.line(frame, tuple(map(int, p1)), tuple(map(int, p2)), (0, 255, 255), 2)
 
         if boxes is not None:
-            frame, validation_par_tas = associer_objets_diagonales(boxes, diagonales, diag_labels, nom_camera, frame)
+            frame, validation_par_tas = associer_objets_diagonales(coords_centre, diagonales, diag_labels, nom_camera, frame)
 
     else:
         print(f"[INFO] Aucun ArUco détecté sur {nom_camera}")
@@ -209,4 +229,45 @@ def process_frame_qr_only(frame, nom_camera, detector, boxes=None):
             frame, validation_par_tas = associer_objets_diagonales(boxes, [], [], nom_camera, frame)
 
     return frame, validation_par_tas
+def visualisation_objects_detected(image, box_list):
+    """
+    Dessine les centres des objets détectés et retourne leurs coordonnées avec la classe.
+
+    Args:
+        image: image sur laquelle dessiner
+        box_list: liste de dictionnaires {'coordinates': [...], 'class': ...}
+
+    Returns:
+        Liste de tuples (x_center, y_center, classe)
+    """
+    centres = []
+
+    if not box_list:
+        print("Erreur, Aucun objet détecté")
+        return centres
+
+    for i, obj in enumerate(box_list):
+        if not isinstance(obj, dict):
+            print(f"[AVERTISSEMENT] Objet #{i} ignoré car non dictionnaire : {obj}")
+            continue
+
+        coords = obj.get("coordinates")
+        classe = obj.get("class")
+
+        if not coords or len(coords) != 4:
+            print(f"[ERREUR] Coordonnées invalides pour l'objet #{i}: {coords}")
+            continue
+
+        x1, y1, x2, y2 = coords
+        x_center = (x1 + x2) / 2
+        y_center = (y1 + y2) / 2
+
+        centres.append((x_center, y_center, classe))
+        
+        # Rose (255, 0, 255) si classe == 1, sinon jaune (0, 255, 255)
+        color = (255, 0, 255) if classe == 1 else (0, 255, 255)
+        cv2.circle(image, (int(x_center), int(y_center)), 10, color, -1)
+
+    return centres
+
 

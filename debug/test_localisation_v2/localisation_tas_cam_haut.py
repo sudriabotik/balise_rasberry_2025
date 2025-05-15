@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from localisation_V2 import create_aruco_detector, preprocess_for_aruco, detect_aruco
+from localisation_tas import create_aruco_detector, preprocess_for_aruco, detect_aruco
 import sys
 
 coordonnée_qrcode = np.array([
@@ -11,13 +11,19 @@ coordonnée_qrcode = np.array([
 ], dtype=np.float32)
 
 
-
 # Dictionnaire global de sauvegarde des derniers centres de qrcode connus
 dernier_centres_aruco = {
     23: None,  # HG
     22: None,  # HD
     20: None,  # BD
     21: None   # BG
+}
+
+zones_tas = {
+    "tas_2": {"x_min": 580, "x_max": 880, "y_min": 45, "y_max": 150},
+    "tas_3": {"x_min": 2150, "x_max": 2450, "y_min": 45, "y_max": 150},
+    "tas_6": {"x_min": 950, "x_max": 1200, "y_min": 800, "y_max": 915},
+    "tas_7": {"x_min": 1820, "x_max": 2070, "y_min": 800, "y_max": 915}
 }
 
 def calculer_centre_aruco(corners, ids):
@@ -120,12 +126,6 @@ def coordonner_terrain(detections, mat, image):
     return positions
 
 
-zones_tas = {
-    "tas_2": {"x_min": 600, "x_max": 900, "y_min": 20, "y_max": 200},
-    "tas_3": {"x_min": 2000, "x_max": 2400, "y_min": 20, "y_max": 200},
-    "tas_6": {"x_min": 900, "x_max": 1300, "y_min": 700, "y_max": 1100},
-    "tas_7": {"x_min": 1700, "x_max": 2100, "y_min": 700, "y_max": 1100}
-}
 
 def localisation_tas(position_elements_jeux, image):
     """
@@ -140,23 +140,24 @@ def localisation_tas(position_elements_jeux, image):
     """
     tas_detected = {key: False for key in zones_tas}
 
-    # Dessiner tous les rectangles de zone
-    for key, zone in zones_tas.items():
-        cv2.rectangle(
-            image,
-            (zone["x_min"], zone["y_min"]),
-            (zone["x_max"], zone["y_max"]),
-            (0, 255, 0), 2  # Vert
-        )
-        cv2.putText(image, key, (zone["x_min"], zone["y_min"] - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-
     # Vérifier si chaque objet est dans une zone
     for x, y in position_elements_jeux:
         for key, zone in zones_tas.items():
             if zone["x_min"] <= x <= zone["x_max"] and zone["y_min"] <= y <= zone["y_max"]:
                 tas_detected[key] = True
                 break
+
+    # Dessiner tous les rectangles de zone (rouge si détecté, vert sinon)
+    for key, zone in zones_tas.items():
+        color = (0, 0, 255) if tas_detected[key] else (0, 255, 0)  # Rouge si détecté, vert sinon
+        cv2.rectangle(
+            image,
+            (zone["x_min"], zone["y_min"]),
+            (zone["x_max"], zone["y_max"]),
+            color, 2
+        )
+        cv2.putText(image, key, (zone["x_min"], zone["y_min"] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
     return tas_detected
 
@@ -167,7 +168,7 @@ def traitement_cam_haut(frame_haut, detector, objects_detected):
     
     if pts_image is None:
         print("❌ Erreur de positionnement des ArUco")
-        return None
+        return frame_haut, None
 
     warped, matrix = redressement(frame_haut, pts_image)
 

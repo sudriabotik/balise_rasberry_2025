@@ -7,9 +7,6 @@ import os
 
 COMMAND_SEPARATOR = ','
 MESSAGE_SEPARATOR = ";"
-
-
-
     
 
 class Server :
