@@ -131,21 +131,19 @@ def Reconnect(handle : ConnexionHandle, ip : str, port : int, timeout = None) :
         lastErrCode = e.errno
         return None
 
+def HandleConnexionErrors(handle: ConnexionHandle, errno: int):
+    handle.WriteToLog(f"processing connexion error with errno : {errno}")
 
-def HandleConnexionErrors(connexionHandle : ConnexionHandle, errno : int) :
+    # Tous les codes qui rendent la connexion inutilisable
+    FATAL_ERRNOS = {9, 32, 10038, 10053, 10054, 10057, 104}
 
-    connexionHandle.WriteToLog(f"processing connexion error with errno : {errno}")
-    
-    if errno == 9 :
-        connexionHandle.valid = False
-        connexionHandle.errorCode = 9
-        connexionHandle.WriteToLog("socket invalidated")
-    elif errno == 104 : # connexion reset by peer
-        connexionHandle.valid = False
-        connexionHandle.WriteToLog("connexion invalidated")
-    elif errno == 32 : # broken pipe ??
-        connexionHandle.valid = False
-        connexionHandle.WriteToLog("connexion invalidated")
+    if errno in FATAL_ERRNOS:
+        handle.valid = False
+        handle.errorCode = errno
+        if errno == 9:
+            handle.WriteToLog("socket invalidated")        # message spécial
+        else:
+            handle.WriteToLog("connexion invalidated")
 
 
 def CreateSocket() :
@@ -154,29 +152,64 @@ def CreateSocket() :
     return sock
 
 """ return true if the image has been sent """
-def SendMessage(connexionHandle : ConnexionHandle, message : str, end="\n", timeout = 0) :
 
-    try :
-        if connexionHandle == None :
-            WriteToMainLog("error, connexionHandle is None")
-            return False
-    except :
+def SendMessage(
+        handle: ConnexionHandle,
+        message: str,
+        *,
+        end: str = "\n",
+        timeout: float = 0,
+        encoding: str = "utf-8"
+) -> bool:
+    """
+    Envoie *message* suivi de *end* sur la connexion portée par *handle*.
+
+    –  Retourne True en cas de succès, False sinon.
+    –  Invalide systématiquement le handle quand l’envoi échoue.
+    –  Journalise l’octet exact envoyé pour faciliter le débogage.
+    """
+
+    # ---------- pré-contrôles ----------
+    if handle is None or not handle.valid:
+        WriteToMainLog("SendMessage: handle is None or invalid")
         return False
 
-    try :
-        connexionHandle.connexion.settimeout(timeout)
-        data = message + end
-        data = data.encode()
-        connexionHandle.connexion.sendall(data)
+    # ---------- préparation du payload ----------
+    try:
+        payload: bytes = (message + end).encode(encoding, errors="surrogatepass")
+    except UnicodeEncodeError as exc:
+        handle.WriteToLog(f"[{datetime.now().time()}] Encoding error: {exc}")
+        handle.valid = False
+        return False
+
+    # Trace hexadécimal (ex.: "TX (5B) : 6c 6f 6c 6f 0a")
+    handle.WriteToLog(
+        f"TX ({len(payload)}B) : {payload.hex(' ')}"
+    )
+
+    # ---------- envoi ----------
+    try:
+        handle.connexion.settimeout(timeout)
+        handle.connexion.sendall(payload)
         return True
-    
-    except socket.error as error :
-        HandleConnexionErrors(connexionHandle, error.errno)
-        connexionHandle.WriteToLog(f"Failed to send message {message} : {error.strerror}")
+
+    # ---------- gestion des erreurs ----------
+    except socket.timeout:
+        # pas bloquant : on ré-essaiera à la prochaine itération
+        handle.WriteToLog("SendMessage timeout")
         return False
-    
-    except Exception as e :
-        connexionHandle.WriteToLog(f"Failed to send message {message} : {str(e)}")
+
+    except socket.error as err:
+        HandleConnexionErrors(handle, err.errno)
+        handle.WriteToLog(
+            f"SendMessage socket.error {err.errno} : {err.strerror}"
+        )
+        return False
+
+    except Exception as exc:
+        handle.WriteToLog(f"SendMessage unexpected error: {exc}")
+        handle.valid = False        # prudence
+        return False
 
 
 """ return the number of new messages that arrived """

@@ -11,7 +11,7 @@ import SocketManager
 #import keyboard  # Requires the 'keyboard' library to detect key presses
 
 #RASPBERRY_IP = '192.168.0.104'  
-RASPBERRY_IP = "localhost"
+RASPBERRY_IP = '192.168.0.100'#"localhost"
 PORT = 65432
 
 CONNECT_TIMEOUT = None
@@ -28,7 +28,6 @@ def create_handle():
     handle.valid = False
     return handle
     
-
 
 def ping_raspberry(ip):
     try:
