@@ -19,7 +19,7 @@ while True:
         print("this shouldn't happen")
     else :
         if not connexion_handle.valid :
-            print("invalid connexion handle")
+            print("invalid connexion handle RECONNECTING ")
             connexion_handle.Close() # we do not really care of this cause an error, it's just to try to close it just in case
             connexion_process(connexion_handle)
     

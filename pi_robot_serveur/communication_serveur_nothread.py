@@ -2,7 +2,6 @@ import SocketManager
 import json
 import time
 import sys
-import threading
 from reception_serveur import recevoir_messages_jsonl
 
 HOST = ''  # Listen on all available network interfaces
@@ -45,24 +44,23 @@ def SendAllInfos(handle : SocketManager.ConnexionHandle) :
 
     global infosSent
 
-    while True :
 
-        try :
-            SocketManager.DumpStoredMessages(handle)
-            SocketManager.SendMessage(handle, "START_MATCH")
-            print("sent START_MATCH")
-            msg = SocketManager.GetLatestMessage(handle)
-            print(f"received {msg}")
-            if msg != "WHAT_COLOR" : return
-            SocketManager.SendMessage(handle, json.dumps(color))
-            print(f"sent color {color}")
-            msg = SocketManager.GetLatestMessage(handle)
-            if msg != "OK" : return
+    try :
+        SocketManager.DumpStoredMessages(handle)
+        SocketManager.SendMessage(handle, "START_MATCH")
+        print("sent START_MATCH")
+        msg = SocketManager.GetLatestMessage(handle)
+        print(f"received {msg}")
+        if msg != "WHAT_COLOR" : return
+        SocketManager.SendMessage(handle, json.dumps(color))
+        print(f"sent color {color}")
+        msg = SocketManager.GetLatestMessage(handle)
+        if msg != "OK" : return
 
-            infosSent = True
-        
-        except :
-            return
+        infosSent = True
+    
+    except :
+        return
 
 
 print(f"🟢 Serveur en écoute sur le port {PORT}")
@@ -88,8 +86,7 @@ SocketManager.SendMessage(handle, "START_MATCH")
 print("✅ START_MATCH envoyé au client")
 time.sleep(2)
 """
-infoThread = threading.Thread(target=SendAllInfos, args=[handle])
-infoThread.start()
+
 
 # with SocketManager the timeout is set for each send / receive
 # conn.setblocking(False)  # Set the socket to non-blocking mode
@@ -120,11 +117,8 @@ while True:
         
     else :
 
-        if not infoThread.is_alive() :
+        SendAllInfos(handle)
 
-            infoThread = threading.Thread(target=SendAllInfos, args=[handle])
-            infoThread.start()
-            print("restarted thread")
     
 
     
