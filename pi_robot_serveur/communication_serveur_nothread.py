@@ -2,7 +2,6 @@ import SocketManager
 import json
 import time
 import sys
-from reception_serveur import recevoir_messages_jsonl
 
 HOST = ''  # Listen on all available network interfaces
 PORT = 65432
@@ -43,7 +42,6 @@ def ConnexionProcess() :
 def SendAllInfos(handle : SocketManager.ConnexionHandle) :
 
     global infosSent
-
 
     try :
         SocketManager.DumpStoredMessages(handle)
@@ -114,12 +112,9 @@ while True:
         for message in messages:
             print("📨 Donnée reçue :", message)
 
-        
     else :
 
         SendAllInfos(handle)
 
     
-
-    
-    time.sleep(0.2)  # Simulate some processing time
+    time.sleep(2)  # Simulate some processing time

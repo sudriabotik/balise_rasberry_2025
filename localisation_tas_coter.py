@@ -27,13 +27,15 @@ angle_offsets_par_tas = {
 }
 
 # === Paramètres de détection personnalisés par tas ===
-'''
+
 rectangle_params_par_tas = {
     "tas_5": {"zone_distance": 285, "rect_w": 240, "rect_h": 110},
     "tas_8": {"zone_distance": 255, "rect_w": 220, "rect_h": 115},
     "tas_4": {"zone_distance": 200, "rect_w": 140, "rect_h": 90},
     "tas_1": {"zone_distance": 223, "rect_w": 160, "rect_h": 82}
 }
+
+init_distance_rectangle = True
 '''
 #valeur equipe jaune
 rectangle_params_par_tas = {
@@ -42,7 +44,7 @@ rectangle_params_par_tas = {
     "tas_1": {"zone_distance": 200, "rect_w": 140, "rect_h": 90},
     "tas_4": {"zone_distance": 223, "rect_w": 160, "rect_h": 82}
 }
-
+'''
 
 # === Sauvegarde des rectangles persistants ===
 rectangles_persistants = {}
@@ -118,7 +120,7 @@ def valider_contenu_tas(rect, centres):
     """
     count_class_0 = 0
     count_class_1 = 0
-    print("parametre centre ", centres)
+    #print("parametre centre ", centres)
     for i, (x, y, classe) in enumerate(centres):
         try:
             point = Point(x, y)
@@ -160,12 +162,12 @@ def associer_objets_diagonales(boxes, diagonales, diag_labels, nom_camera, image
     diag_dict = {label: diag for diag, label in zip(diagonales, diag_labels)}
     labels_uniques = list(aruco_to_tas.values())
     tas_autorises = tas_par_camera.get(nom_camera, set())
-    print(f"[INFO] Tas autorisés pour {nom_camera}: {tas_autorises}")
-    print(f"[INFO] Tas déjà affichés: {tas_deja_affiches}")
+    #print(f"[INFO] Tas autorisés pour {nom_camera}: {tas_autorises}")
+    #print(f"[INFO] Tas déjà affichés: {tas_deja_affiches}")
 
     for label in labels_uniques:
         if label in tas_deja_affiches or label not in tas_autorises:
-            print(f"[INFO] Tas {label} déjà affiché ou non autorisé pour {nom_camera}")
+            #print(f"[INFO] Tas {label} déjà affiché ou non autorisé pour {nom_camera}")
             continue
 
         diag = diag_dict.get(label)
@@ -173,7 +175,7 @@ def associer_objets_diagonales(boxes, diagonales, diag_labels, nom_camera, image
         if diag is not None:
             rect = create_rectangle(label, diag)
             rectangles_persistants[label] = rect
-            print(f"[INFO] Rectangle mis à jour pour {label}")
+            #print(f"[INFO] Rectangle mis à jour pour {label}")
         else:
             rect = rectangles_persistants.get(label)
             if rect is None:
@@ -200,10 +202,32 @@ def associer_objets_diagonales(boxes, diagonales, diag_labels, nom_camera, image
 
     return image, validation_par_tas
 
+def distance_rectangle(couleur_equipe):
+    global init_distance_rectangle, rectangle_params_par_tas
+
+    if couleur_equipe == "jaune" and init_distance_rectangle:
+        print("Changement de couleur équipe, on inverse les distances des rectangles")
+        init_distance_rectangle = False
+
+        d = rectangle_params_par_tas          # alias plus court
+
+        # tas_1  ↔  tas_4
+        d["tas_1"]["zone_distance"], d["tas_4"]["zone_distance"] = \
+            d["tas_4"]["zone_distance"], d["tas_1"]["zone_distance"]
+
+        # tas_5  ↔  tas_8
+        d["tas_5"]["zone_distance"], d["tas_8"]["zone_distance"] = \
+            d["tas_8"]["zone_distance"], d["tas_5"]["zone_distance"]
+
+        print("rectangle_params_par_tas", rectangle_params_par_tas)
+
+
 # === Pipeline ArUco complet pour caméra gauche/droite ===
-def process_frame_qr_only(frame, nom_camera, detector, boxes=None):
+def process_frame_qr_only(frame, nom_camera, detector, boxes=None, couleur_equipe=None):
     if nom_camera not in ["Camera droite", "Camera gauche"]:
         return frame, {}
+
+    distance_rectangle(couleur_equipe)
 
     coords_centre = visualisation_objects_detected(frame, boxes)
 
@@ -226,7 +250,7 @@ def process_frame_qr_only(frame, nom_camera, detector, boxes=None):
         print(f"[INFO] Aucun ArUco détecté sur {nom_camera}")
         if boxes is not None:
             # Appel avec listes vides : aucune diagonale visible
-            frame, validation_par_tas = associer_objets_diagonales(boxes, [], [], nom_camera, frame)
+            frame, validation_par_tas = associer_objets_diagonales(coords_centre, [], [], nom_camera, frame)
 
     return frame, validation_par_tas
 def visualisation_objects_detected(image, box_list):
@@ -270,4 +294,48 @@ def visualisation_objects_detected(image, box_list):
 
     return centres
 
+def numero_tas_en_jaune(tas: dict) -> None:
+    """
+    paires à échanger :
+      tas_5 ↔ tas_8
+      tas_1 ↔ tas_4
+      tas_2 ↔ tas_3
+      tas_6 ↔ tas_7
+    """
 
+    swaps = [
+        ("tas_5", "tas_8"),
+        ("tas_1", "tas_4"),
+        ("tas_2", "tas_3"),
+        ("tas_6", "tas_7"),
+    ]
+
+    for k1, k2 in swaps:
+        if k1 in tas and k2 in tas:        # les deux clés existent
+            tas[k1], tas[k2] = tas[k2], tas[k1]
+        else:
+            # facultatif : message de debug ; commente si tu ne veux rien afficher
+            manquantes = [k for k in (k1, k2) if k not in tas]
+            print(f"  ⚠️  clé(s) manquante(s) ignorée(s) : {', '.join(manquantes)}")
+
+    # la fonction modifie le dict en place, rien à retourner
+
+
+def safe_merge(*items, verbose=False):
+    """
+    Fusionne les dictionnaires passés en argument.
+    Ignore silencieusement tout élément qui n’est pas un dict.
+
+    >>> a = {'x': 1}
+    >>> b = None
+    >>> c = {'y': 2}
+    >>> safe_merge(a, b, c)
+    {'x': 1, 'y': 2}
+    """
+    result = {}
+    for idx, item in enumerate(items, 1):
+        if isinstance(item, dict):
+            result |= item                 # opérateur de fusion (Py 3.9+)
+        elif verbose:
+            print(f"[safe_merge] argument #{idx} ignoré (type {type(item).__name__})")
+    return result

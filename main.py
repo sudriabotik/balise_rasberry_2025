@@ -6,7 +6,7 @@ import cv2
 import sys
 import time
 from setup_camera import setup_cameras
-from localisation_tas_coter import create_aruco_detector, process_frame_qr_only
+from localisation_tas_coter import create_aruco_detector, process_frame_qr_only, numero_tas_en_jaune, safe_merge
 from detection_yolo import process_frames
 from localisation_tas_cam_haut import traitement_cam_haut
 from ecrans_lcd import setup_lcd
@@ -50,10 +50,10 @@ while True:
             time.sleep(1)
             continue
 
-    SocketManager.SendMessage(connexion_handle, "lolo")
-    time.sleep(3)
-    print("_______________________________")
-    continue 
+    #SocketManager.SendMessage(connexion_handle, "lolo")
+    #time.sleep(3)
+    #print("_______________________________")
+    #continue 
 
     # Capture d'une image depuis chaque caméra
     ret0, frame_droite = cap_droite.read()
@@ -63,18 +63,24 @@ while True:
     objects_detected = process_frames([frame_droite, frame_gauche, frame_haut])  # Traiter les frames et les annoter directement
 
 # 1. Utiliser process_frame_qr_only AVANT l'annotation YOLO
-    annotated_frame_droite, tas_cam_droite  = process_frame_qr_only(frame_droite.copy(), "Camera droite", detector, boxes=objects_detected[0])
-    annotated_frame_gauche, tas_cam_gauche = process_frame_qr_only(frame_gauche.copy(), "Camera gauche", detector, boxes=objects_detected[1])
+    annotated_frame_droite, tas_cam_droite  = process_frame_qr_only(frame_droite.copy(), "Camera droite", detector, boxes=objects_detected[0], couleur_equipe=couleur_equipe_value)
+    annotated_frame_gauche, tas_cam_gauche = process_frame_qr_only(frame_gauche.copy(), "Camera gauche", detector, boxes=objects_detected[1], couleur_equipe=couleur_equipe_value)
     annotated_redresser_frame_haut, tas_cam_haut = traitement_cam_haut(frame_haut, detector, objects_detected[2])
-    print("[Camera droite] État des tas :", tas_cam_droite)
-    print("[Camera gauche] État des tas :", tas_cam_gauche)
-    print("[Camera haut] État des tas :", tas_cam_haut)
+
+    tas = safe_merge(tas_cam_droite, tas_cam_gauche, tas_cam_haut)
+
+    #print("repr :", repr(couleur_equipe_value))
+    #print("type :", type(couleur_equipe_value))
+    if couleur_equipe_value == "jaune":
+        numero_tas_en_jaune(tas)
 
     # Afficher les images annotées dans leurs fenêtres respectives
     cv2.imshow("Detection Camera 0", annotated_frame_droite)
     cv2.imshow("Detection Camera 1", annotated_frame_gauche)
     cv2.imshow("Detection Camera 2", annotated_redresser_frame_haut)
 
+    print(tas)
+    SocketManager.SendMessage(connexion_handle, str(tas))
     print("__________________________________")
 
     # Quitter la boucle en appuyant sur 'q'

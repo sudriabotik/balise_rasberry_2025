@@ -183,9 +183,9 @@ def SendMessage(
         return False
 
     # Trace hexadécimal (ex.: "TX (5B) : 6c 6f 6c 6f 0a")
-    handle.WriteToLog(
-        f"TX ({len(payload)}B) : {payload.hex(' ')}"
-    )
+    #handle.WriteToLog(
+    #    f"TX ({len(payload)}B) : {payload.hex(' ')}"
+    #)
 
     # ---------- envoi ----------
     try:

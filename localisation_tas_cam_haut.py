@@ -172,10 +172,10 @@ def traitement_cam_haut(frame_haut, detector, objects_detected):
 
     warped, matrix = redressement(frame_haut, pts_image)
 
-    print("objects_detected[0]", objects_detected)
+    #print("objects_detected[0]", objects_detected)
 
     position_elements_jeux = coordonner_terrain(objects_detected, matrix, warped)
-    print("Position des éléments de jeu :", position_elements_jeux) 
+    #print("Position des éléments de jeu :", position_elements_jeux) 
     
     tas_detected = localisation_tas(position_elements_jeux, warped)
 

@@ -11,7 +11,7 @@ import SocketManager
 #import keyboard  # Requires the 'keyboard' library to detect key presses
 
 #RASPBERRY_IP = '192.168.0.104'  
-RASPBERRY_IP = '192.168.0.100'#"localhost"
+RASPBERRY_IP = '192.168.0.104'#"localhost"
 PORT = 65432
 
 CONNECT_TIMEOUT = None
@@ -176,6 +176,7 @@ def exchange_infos(handle) :
         msg = SocketManager.GetLatestMessage(handle)
         print(f"received {msg}")
         color = msg
+        color = color.strip('"') 
         SocketManager.SendMessage(handle, "OK")
         print("sent ok")
 
