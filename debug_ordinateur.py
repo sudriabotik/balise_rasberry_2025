@@ -1,3 +1,0 @@
-type data <class 'str'>
-data reçu singal match 'START_MATCH'
-⚠️ Signal non reconnu, attente...
