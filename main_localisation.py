@@ -10,6 +10,8 @@ from localisation_tas_coter import create_aruco_detector, process_frame_qr_only
 from detection_yolo import process_frames
 from localisation_tas_cam_haut import traitement_cam_haut
 from ecrans_lcd import setup_lcd
+from communication_client import create_handle, setup_connexion, connexion_process, send_data, couleur_equipe, wait_start_match, exchange_infos
+import SocketManager
 
 lcd = setup_lcd()
 
@@ -22,7 +24,37 @@ cv2.namedWindow("Detection Camera 0", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Detection Camera 1", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Detection Camera 2", cv2.WINDOW_NORMAL)
 
+connexion_handle = create_handle()
+
+couleur_equipe_value = None
+
 while True:
+    # verify connexion is still ok, else attempt to reconnect
+    print(connexion_handle)
+    if connexion_handle == None :
+        print("this shouldn't happen")
+    else :
+        if not connexion_handle.valid :
+            print("invalid connexion handle RECONNECTING ")
+            connexion_handle.Close() # we do not really care of this cause an error, it's just to try to close it just in case
+            connexion_process(connexion_handle)
+    
+    
+    if couleur_equipe_value == None : # it means the match has not yet started
+        couleur_equipe_value = exchange_infos(connexion_handle)
+        if couleur_equipe_value != None : # this mean the robot sent that the match have started
+            start_time = time.time()
+            print(f"match started, with color {couleur_equipe_value}")
+        else :
+            print("failed to obtain informations from the robot")
+            time.sleep(1)
+            continue
+
+    SocketManager.SendMessage(connexion_handle, "lolo")
+    time.sleep(3)
+    print("_______________________________")
+    continue 
+
     # Capture d'une image depuis chaque caméra
     ret0, frame_droite = cap_droite.read()
     ret1, frame_gauche = cap_gauche.read()
